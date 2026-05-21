@@ -494,3 +494,125 @@ body {
   .score-form { grid-template-columns: 1fr; }
   .footer { flex-direction: column; gap: 6px; padding: 14px 18px; }
 }
+
+
+/* Profile Dropdown */
+.profile-dropdown { position: relative; }
+
+.btn-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.btn-profile:hover { background: rgba(148, 163, 184, 0.15); }
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+}
+
+.avatar-large {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 18px;
+  color: white;
+}
+
+.chevron { transition: transform 0.2s ease; }
+.profile-dropdown.open .chevron { transform: rotate(180deg); }
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+  padding: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.profile-dropdown.open .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
+
+.dropdown-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.dropdown-role {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.dropdown-item svg {
+  color: var(--text-dim);
+}
+
+.dropdown-item-danger {
+  color: #fca5a5;
+}
+
+.dropdown-item-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.dropdown-item-danger svg {
+  color: #ef4444;
+}

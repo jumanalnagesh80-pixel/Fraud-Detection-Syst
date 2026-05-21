@@ -5,6 +5,7 @@ Boots a Flask app that:
   1. Trains a fraud model on synthetic data at startup (a few seconds).
   2. Exposes a REST API under /api/...
   3. Serves the interactive dashboard at /
+  4. Provides authentication, admin panel, and user management
 
 Usage:
     # start the web dashboard + API (default)
@@ -30,9 +31,16 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, redirect, url_for
+from flask_login import login_required, current_user
+from flask_cors import CORS
 
 from src.api import create_api_blueprint
+from src.auth import init_auth
+from src.auth.routes import auth_bp
+from src.auth.middleware import init_rbac_middleware
+from src.admin.routes import admin_bp
+from src.database import db, init_db
 from src.data_processing import generate_synthetic_transactions
 from src.models import FraudModel
 from src.real_time import AlertManager, TransactionMonitor
@@ -54,7 +62,42 @@ log = logging.getLogger("fraud-detection")
 # ----------------------------------------------------------------------
 def create_app() -> Flask:
     frontend_dir = ROOT / "frontend"
-    app = Flask(__name__, static_folder=str(frontend_dir), static_url_path="")
+    templates_dir = frontend_dir / "templates"
+    
+    app = Flask(
+        __name__, 
+        static_folder=str(frontend_dir), 
+        static_url_path="",
+        template_folder=str(templates_dir)
+    )
+    
+    # Configuration
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///fraud_detection.db')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600  # 1 hour
+    
+    # Initialize extensions
+    CORS(app)
+    init_db(app)
+    init_auth(app)
+    init_rbac_middleware(app)
+    
+    # Register blueprints
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(create_api_blueprint())
+    
+    # Initialize database and create default roles/admin
+    with app.app_context():
+        db.create_all()
+        from src.auth.init_roles import init_default_roles, create_default_admin
+        try:
+            init_default_roles()
+            create_default_admin()
+        except Exception as e:
+            log.warning(f"Role/admin initialization: {e}")
 
     # try to load a pre-trained model first
     model = FraudModel()
@@ -78,17 +121,20 @@ def create_app() -> Flask:
     app.config["MONITOR"] = TransactionMonitor(window_size=500)
     app.config["ALERTS"] = AlertManager(max_alerts=200)
 
-    app.register_blueprint(create_api_blueprint())
-
     # ------------------------------------------------------------------
     # frontend routes
     # ------------------------------------------------------------------
     @app.get("/")
     def index():
-        return send_from_directory(app.static_folder, "index.html")
+        """Redirect to login if not authenticated, else dashboard."""
+        if current_user.is_authenticated:
+            return redirect(url_for('main_dashboard'))
+        return redirect(url_for('auth.login'))
 
     @app.get("/dashboard")
-    def dashboard_alias():
+    @login_required
+    def main_dashboard():
+        """Main fraud detection dashboard."""
         return send_from_directory(app.static_folder, "index.html")
 
     return app

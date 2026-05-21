@@ -1,10 +1,11 @@
 # 🛡️ Real-Time Fraud Detection System
 
-A comprehensive machine learning-based fraud detection system for banking transactions with real-time monitoring, web dashboard, and automated alerts.
+A comprehensive, production-ready machine learning-based fraud detection system with **authentication**, **role-based access control**, **admin panel**, real-time monitoring, and interactive web dashboard.
 
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![Flask](https://img.shields.io/badge/flask-3.x-lightgrey)
+![Auth](https://img.shields.io/badge/auth-JWT%20%2B%20Sessions-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 📋 Table of Contents
@@ -22,7 +23,23 @@ A comprehensive machine learning-based fraud detection system for banking transa
 
 ## ✨ Features
 
-### Core Functionality
+### 🔐 Authentication & Security
+- ✅ **User Authentication** - Flask-Login + JWT tokens for session and API auth
+- ✅ **Role-Based Access Control (RBAC)** - 3 roles: Admin, Analyst, Viewer with granular permissions
+- ✅ **Secure Password Hashing** - Bcrypt with automatic salt generation
+- ✅ **Account Security** - Auto-lock after 5 failed login attempts (15 min cooldown)
+- ✅ **Audit Logging** - Complete trail of all actions, logins, and API calls
+- ✅ **Session Management** - Secure cookie-based sessions with "remember me"
+
+### 👥 Admin Panel
+- ✅ **User Management** - Create, edit, delete users with search and pagination
+- ✅ **Role Management** - View roles, permissions, and user distribution
+- ✅ **System Statistics** - User counts, transaction metrics, fraud rates
+- ✅ **Audit Log Viewer** - Filter and review all system activity
+- ✅ **Password Reset** - Admin can reset user passwords
+- ✅ **Account Status Control** - Activate/deactivate user accounts
+
+### 🤖 Fraud Detection
 - ✅ **Real-time transaction monitoring** - process and analyze transactions as they occur
 - ✅ **Ensemble ML model** - Random Forest + Gradient Boosting + Logistic Regression (soft voting)
 - ✅ **Advanced feature engineering** - time, amount, velocity, country/category risk
@@ -33,13 +50,22 @@ A comprehensive machine learning-based fraud detection system for banking transa
 - ✅ **Batch processing** - score multiple transactions per request
 - ✅ **Built-in simulator** - generate realistic traffic on demand
 
-### Technical Features
+### 🎨 User Interface
+- ✅ **Modern Dark Theme** - Glassmorphism design with animated gradient orbs
+- ✅ **Profile Dropdown** - User avatar, role badge, quick access to admin/settings
+- ✅ **Login/Register Pages** - Beautiful auth pages with form validation
+- ✅ **Responsive Design** - Works on desktop, tablet, and mobile
+- ✅ **Real-time Charts** - Chart.js visualizations update every 3 seconds
+- ✅ **Smooth Animations** - Slide-ups, fades, loading states
+
+### 🛠️ Technical Features
 - 🔄 Real-time processing with <100ms typical latency
 - 📊 Interactive Chart.js visualisations (volume, risk, categories, feature importance)
 - 🎯 Fraud probability scoring with 4 risk levels (low / medium / high / critical)
-- 💾 Model persistence via pickle
+- 💾 Model persistence via pickle + SQLite database for users/transactions
 - 🔐 Production-ready WSGI entrypoint (gunicorn)
 - 🐳 One-command Docker deployment
+- 🔑 CORS enabled for cross-origin API access
 
 ## 🛠️ Technology Stack
 
@@ -99,28 +125,45 @@ python transaction_simulator.py --mode demo
 
 ## 🚀 Quick Start
 
-### Option 1: Use Synthetic Data (Fastest)
+### Prerequisites
+- Python 3.9+ 
+- pip
+
+### Default Admin Credentials
+After first run, login with:
+- **Username:** `admin`
+- **Password:** `admin123`
+- **⚠️ Change this immediately in production!**
+
+### Installation
+
 ```bash
-# 1. Generate a synthetic dataset
-python main.py --mode generate --samples 10000
+# 1. Clone repository
+git clone https://github.com/jumanalnagesh80-pixel/Fraud-Detection-Syst.git
+cd Fraud-Detection-Syst
 
-# 2. Train a model and save it
-python main.py --mode train --data data/synthetic/synthetic_transactions.csv
+# 2. Install dependencies
+pip install -r requirements.txt
 
-# 3. Start the web app + API
-python main.py --mode webapp
+# 3. Run the application
+python main.py
 
-# 4. Open the dashboard
-#    http://localhost:5000/dashboard
+# 4. Open browser
+# http://localhost:5000
+# Login with admin/admin123
 ```
 
-> The web app **also auto-trains on first boot** if no saved model is found, so
-> step 1 and 2 are optional for a quick demo.
+The system will automatically:
+- Create SQLite database (`fraud_detection.db`)
+- Initialize 3 roles (admin, analyst, viewer)
+- Create default admin user
+- Train fraud detection model on synthetic data
+- Start web server on port 5000
 
 ### Option 2: Docker
 ```bash
 docker compose up --build
-# Dashboard: http://localhost:5000/dashboard
+# Access: http://localhost:5000
 ```
 
 ### Option 3: Custom Training in Python

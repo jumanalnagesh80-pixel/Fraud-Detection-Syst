@@ -458,11 +458,60 @@ function escapeHtml(s) {
 }
 
 // ============================================================
+// USER PROFILE
+// ============================================================
+async function loadUserProfile() {
+  try {
+    const response = await fetch('/auth/api/me');
+    if (response.ok) {
+      const data = await response.json();
+      const user = data.user;
+      
+      // Update profile elements
+      const initial = (user.full_name || user.username || 'U')[0].toUpperCase();
+      document.getElementById('user-avatar').textContent = initial;
+      document.getElementById('avatar-large').textContent = initial;
+      document.getElementById('user-name').textContent = user.full_name || user.username;
+      document.getElementById('dropdown-name').textContent = user.full_name || user.username;
+      document.getElementById('dropdown-role').textContent = user.role || 'User';
+      
+      // Show admin link if admin
+      if (user.role === 'admin') {
+        document.getElementById('admin-link').style.display = 'flex';
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load user profile', e);
+  }
+}
+
+// Profile dropdown toggle
+function initProfileDropdown() {
+  const dropdown = document.querySelector('.profile-dropdown');
+  const btn = document.getElementById('btn-profile');
+  
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+  
+  document.addEventListener('click', () => {
+    dropdown.classList.remove('open');
+  });
+  
+  document.getElementById('profile-menu').addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+}
+
+// ============================================================
 // boot
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   buildCharts();
   loadModelInfo();
+  loadUserProfile();
+  initProfileDropdown();
   refresh();
   setInterval(refresh, POLL_MS);
 
