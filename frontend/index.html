@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentinel · Fraud Detection Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="M9 12l2 2 4-4" />
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Sentinel</div>
+        <div class="brand-tag">Real-time fraud detection</div>
+      </div>
+    </div>
+
+    <div class="status-pill" id="status-pill">
+      <span class="status-dot"></span>
+      <span id="status-text">Connecting…</span>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" id="btn-refresh" title="Refresh now">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+        Refresh
+      </button>
+      <button class="btn btn-primary" id="btn-simulate">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
+        Run Simulation
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- KPI cards -->
+    <section class="kpi-grid">
+      <article class="kpi-card kpi-blue">
+        <div class="kpi-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        </div>
+        <div class="kpi-meta">
+          <div class="kpi-label">Transactions</div>
+          <div class="kpi-value" id="kpi-total">0</div>
+          <div class="kpi-sub" id="kpi-throughput">0 / min throughput</div>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-red">
+        <div class="kpi-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="kpi-meta">
+          <div class="kpi-label">Fraud Detected</div>
+          <div class="kpi-value" id="kpi-fraud">0</div>
+          <div class="kpi-sub" id="kpi-fraud-rate">0.00% fraud rate</div>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-green">
+        <div class="kpi-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="kpi-meta">
+          <div class="kpi-label">Approved</div>
+          <div class="kpi-value" id="kpi-approved">0</div>
+          <div class="kpi-sub"><span id="kpi-review">0</span> review · <span id="kpi-declined">0</span> declined</div>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-purple">
+        <div class="kpi-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="kpi-meta">
+          <div class="kpi-label">Avg Latency</div>
+          <div class="kpi-value"><span id="kpi-latency">0</span><span class="kpi-unit">ms</span></div>
+          <div class="kpi-sub" id="kpi-uptime">Uptime 0s</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Charts row -->
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Hourly Volume</h3>
+            <p class="card-sub">Transactions vs fraud across the last 24 hours</p>
+          </div>
+          <div class="legend-inline">
+            <span><i class="dot dot-blue"></i> Total</span>
+            <span><i class="dot dot-red"></i> Fraud</span>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-hourly"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Risk Distribution</h3>
+            <p class="card-sub">How recent transactions are scored</p>
+          </div>
+        </div>
+        <div class="chart-wrap chart-doughnut"><canvas id="chart-risk"></canvas></div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Top Fraud Categories</h3>
+            <p class="card-sub">Where bad actors are striking</p>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-categories"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Model Feature Importance</h3>
+            <p class="card-sub">What signals drive the score</p>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-features"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Live feed + alerts -->
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Live Transaction Feed</h3>
+            <p class="card-sub">Most recent scored transactions</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Txn ID</th>
+                <th>Amount</th>
+                <th>Country</th>
+                <th>Category</th>
+                <th>Risk</th>
+                <th>Decision</th>
+              </tr>
+            </thead>
+            <tbody id="feed-body">
+              <tr class="empty"><td colspan="7">Waiting for transactions… Click <strong>Run Simulation</strong> to start.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Active Alerts</h3>
+            <p class="card-sub">High-risk events flagged for review</p>
+          </div>
+        </div>
+        <div id="alerts-list" class="alerts-list">
+          <div class="empty-state">No alerts yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Manual scoring panel -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">Score a Transaction</h3>
+          <p class="card-sub">Submit values manually to test the model</p>
+        </div>
+      </div>
+      <form id="score-form" class="score-form">
+        <div class="field">
+          <label>Amount (USD)</label>
+          <input type="number" name="amount" min="1" step="0.01" value="1250" required />
+        </div>
+        <div class="field">
+          <label>Country</label>
+          <select name="country">
+            <option value="US">US</option><option value="CA">CA</option>
+            <option value="GB">GB</option><option value="DE">DE</option>
+            <option value="FR">FR</option><option value="IN">IN</option>
+            <option value="JP">JP</option><option value="AU">AU</option>
+            <option value="BR">BR</option>
+            <option value="NG">NG (high risk)</option>
+            <option value="RU">RU (high risk)</option>
+            <option value="CN">CN (high risk)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select name="merchant_category">
+            <option>grocery</option><option>restaurant</option><option>fuel</option>
+            <option>online_retail</option><option>electronics</option><option>travel</option>
+            <option>entertainment</option><option>healthcare</option><option>utilities</option>
+            <option>atm_withdrawal</option><option>luxury</option>
+            <option>gambling</option><option>crypto</option><option>wire_transfer</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Hour (0-23)</label>
+          <input type="number" name="hour" min="0" max="23" value="14" />
+        </div>
+        <div class="field">
+          <label>Device</label>
+          <select name="device_type">
+            <option>web_chrome</option><option>web_firefox</option><option>web_safari</option>
+            <option>mobile_ios</option><option>mobile_android</option>
+            <option>pos_terminal</option><option>atm</option>
+          </select>
+        </div>
+        <div class="field field-check">
+          <label><input type="checkbox" name="is_card_present" /> Card present</label>
+        </div>
+        <div class="field field-action">
+          <button type="submit" class="btn btn-primary">Score Transaction</button>
+        </div>
+      </form>
+      <div id="score-result" class="score-result"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Sentinel · Fraud Detection · Built with Flask + scikit-learn + Chart.js</span>
+    <span id="model-info">Model: loading…</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
