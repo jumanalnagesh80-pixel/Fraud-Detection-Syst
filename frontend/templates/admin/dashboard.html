@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel · Sentinel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/profile.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l-6 6v10h4v-6h4v6h4V8z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Admin Panel</div>
+        <div class="brand-tag">User & access management</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a href="/dashboard" class="btn btn-ghost">Dashboard</a>
+      <a href="/transactions" class="btn btn-ghost">Transactions</a>
+      <a href="/reports" class="btn btn-ghost">Reports</a>
+      <a href="/auth/profile" class="btn btn-ghost">Profile</a>
+      <a href="/auth/logout" class="btn btn-ghost">Logout</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- KPI tiles -->
+    <section class="report-grid" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="report-card">
+        <div class="label">Total Users</div>
+        <div class="value" id="stat-total-users">—</div>
+        <div class="delta" id="stat-recent-reg">— new in 30 days</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Active Users</div>
+        <div class="value" id="stat-active-users">—</div>
+        <div class="delta" id="stat-verified">— verified</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Total Transactions</div>
+        <div class="value" id="stat-total-txns">—</div>
+        <div class="delta" id="stat-fraud-rate">fraud rate —</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Pending Reviews</div>
+        <div class="value" id="stat-pending">—</div>
+        <div class="delta" id="stat-fraud-detected">— fraud detected</div>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab tab-active" data-tab="users">Users</button>
+      <button class="tab" data-tab="roles">Roles</button>
+      <button class="tab" data-tab="audit">Audit Log</button>
+    </div>
+
+    <!-- Users -->
+    <section class="tab-panel tab-panel-active" id="panel-users">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">User Management</h3>
+            <p class="card-sub">Create, edit, deactivate, and reset passwords</p>
+          </div>
+        </div>
+
+        <div class="form-grid" style="grid-template-columns: 2fr 1fr 1fr auto; gap:10px; margin-top:0;">
+          <div class="field">
+            <label>Search</label>
+            <input type="text" id="u-search" placeholder="Username, email, or full name" />
+          </div>
+          <div class="field">
+            <label>Role</label>
+            <select id="u-role">
+              <option value="">All roles</option>
+              <option value="admin">Admin</option>
+              <option value="analyst">Analyst</option>
+              <option value="viewer">Viewer</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="u-status">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="field field-action" style="align-self:end;">
+            <button class="btn btn-primary" id="u-apply">Apply</button>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="max-height:540px; margin-top:14px;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-body">
+              <tr class="empty"><td colspan="7">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="pager" style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;"></div>
+      </div>
+    </section>
+
+    <!-- Roles -->
+    <section class="tab-panel" id="panel-roles">
+      <div class="card">
+        <h3 class="card-title">Roles & Permissions</h3>
+        <p class="card-sub">Built-in roles and the permissions they grant</p>
+        <div id="roles-list" style="display:flex; flex-direction:column; gap:14px; margin-top:14px;"></div>
+      </div>
+    </section>
+
+    <!-- Audit -->
+    <section class="tab-panel" id="panel-audit">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Audit Log</h3>
+            <p class="card-sub">Recent administrative and security events</p>
+          </div>
+        </div>
+        <div class="table-wrap" style="max-height:540px;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>User</th>
+                <th>Action</th>
+                <th>Resource</th>
+                <th>Status</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody id="audit-body">
+              <tr class="empty"><td colspan="6">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Edit-user modal -->
+  <div id="edit-overlay" class="face-login-overlay" style="display:none;">
+    <div class="face-login-card" style="max-width:520px;">
+      <div class="face-login-head">
+        <h3 id="edit-title">Edit User</h3>
+        <button type="button" class="face-login-close" id="edit-close">&times;</button>
+      </div>
+      <form id="edit-form" class="form-grid">
+        <input type="hidden" id="e-id" />
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="e-full_name" />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="e-email" />
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select id="e-role_id"></select>
+        </div>
+        <div class="field">
+          <label>Department</label>
+          <input type="text" id="e-department" />
+        </div>
+        <div class="field field-full">
+          <label>Phone</label>
+          <input type="text" id="e-phone" />
+        </div>
+        <div class="field">
+          <label>Active</label>
+          <select id="e-is_active">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Verified</label>
+          <select id="e-is_verified">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+        <div class="field field-full">
+          <label>New Password (leave blank to keep current)</label>
+          <input type="password" id="e-password" minlength="8" placeholder="At least 8 characters" />
+        </div>
+        <div class="field field-action">
+          <button type="button" class="btn btn-ghost" id="edit-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    // ---------- helpers ----------
+    function toast(msg, type = 'success') {
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      requestAnimationFrame(() => t.classList.add('show'));
+      setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+    function fmtDate(s) { return s ? new Date(s).toLocaleString() : '—'; }
+
+    // ---------- Tabs ----------
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('tab-active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('tab-panel-active'));
+        t.classList.add('tab-active');
+        document.getElementById('panel-' + t.dataset.tab).classList.add('tab-panel-active');
+        if (t.dataset.tab === 'roles') loadRoles();
+        if (t.dataset.tab === 'audit') loadAudit();
+      });
+    });
+
+    // ---------- Stats ----------
+    async function loadStats() {
+      try {
+        const r = await fetch('/admin/api/stats');
+        if (!r.ok) throw new Error('stats fetch failed');
+        const d = await r.json();
+        document.getElementById('stat-total-users').textContent = d.users.total;
+        document.getElementById('stat-active-users').textContent = d.users.active;
+        document.getElementById('stat-recent-reg').textContent = `${d.users.recent_registrations} new in 30 days`;
+        document.getElementById('stat-verified').textContent = `${d.users.verified} verified`;
+        document.getElementById('stat-total-txns').textContent = d.transactions.total;
+        document.getElementById('stat-fraud-rate').textContent = `fraud rate ${(d.transactions.fraud_rate * 100).toFixed(2)}%`;
+        document.getElementById('stat-pending').textContent = d.transactions.pending_reviews;
+        document.getElementById('stat-fraud-detected').textContent = `${d.transactions.fraud_detected} fraud detected`;
+      } catch (e) { /* keep dashes */ }
+    }
+
+    // ---------- Users ----------
+    let _roles = [];
+    let _page = 1;
+
+    async function loadRolesForSelect() {
+      if (_roles.length) return _roles;
+      const r = await fetch('/admin/api/roles');
+      const d = await r.json();
+      _roles = d.roles || [];
+      return _roles;
+    }
+
+    async function loadUsers(page = 1) {
+      _page = page;
+      const search = document.getElementById('u-search').value.trim();
+      const role = document.getElementById('u-role').value;
+      const status = document.getElementById('u-status').value;
+      const params = new URLSearchParams({ page, per_page: 20 });
+      if (search) params.set('search', search);
+      if (role) params.set('role', role);
+      if (status) params.set('status', status);
+
+      const r = await fetch(`/admin/api/users?${params}`);
+      const d = await r.json();
+      const tbody = document.getElementById('users-body');
+
+      if (!d.users || !d.users.length) {
+        tbody.innerHTML = `<tr class="empty"><td colspan="7">No users found.</td></tr>`;
+        document.getElementById('pager').innerHTML = '';
+        return;
+      }
+
+      tbody.innerHTML = d.users.map(u => {
+        const initial = (u.full_name || u.username || 'U')[0].toUpperCase();
+        const status = u.is_active
+          ? `<span class="badge badge-low"><i></i>active</span>`
+          : `<span class="badge badge-critical"><i></i>inactive</span>`;
+        return `
+          <tr>
+            <td>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="avatar" style="width:30px;height:30px;font-size:12px;">${initial}</div>
+                <div>
+                  <div style="font-weight:600;">${escapeHtml(u.full_name || u.username)}</div>
+                  <div style="font-size:11.5px; color:var(--text-mute);">@${escapeHtml(u.username)}</div>
+                </div>
+              </div>
+            </td>
+            <td>${escapeHtml(u.email)}</td>
+            <td><span class="badge badge-${u.role === 'admin' ? 'critical' : u.role === 'analyst' ? 'medium' : 'low'}">${escapeHtml(u.role || 'user')}</span></td>
+            <td>${status}</td>
+            <td>${escapeHtml(fmtDate(u.last_login))}</td>
+            <td>${escapeHtml(fmtDate(u.created_at))}</td>
+            <td>
+              <button class="btn btn-ghost" style="padding:6px 10px; font-size:12px;" data-edit="${u.id}">Edit</button>
+              <button class="btn btn-ghost" style="padding:6px 10px; font-size:12px;" data-delete="${u.id}" data-username="${escapeHtml(u.username)}">Delete</button>
+            </td>
+          </tr>`;
+      }).join('');
+
+      // pagination
+      const p = d.pagination;
+      const pager = document.getElementById('pager');
+      pager.innerHTML = `
+        <button class="btn btn-ghost" ${p.page <= 1 ? 'disabled' : ''} data-pg="${p.page - 1}" style="padding:6px 12px;">‹ Prev</button>
+        <span style="padding:6px 12px; color:var(--text-dim); font-size:13px;">Page ${p.page} of ${p.pages || 1} · ${p.total} total</span>
+        <button class="btn btn-ghost" ${!p.has_next ? 'disabled' : ''} data-pg="${p.page + 1}" style="padding:6px 12px;">Next ›</button>
+      `;
+      pager.querySelectorAll('[data-pg]').forEach(b => b.addEventListener('click', () => loadUsers(parseInt(b.dataset.pg))));
+
+      // edit / delete handlers
+      tbody.querySelectorAll('[data-edit]').forEach(b =>
+        b.addEventListener('click', () => openEdit(parseInt(b.dataset.edit)))
+      );
+      tbody.querySelectorAll('[data-delete]').forEach(b =>
+        b.addEventListener('click', () => deleteUser(parseInt(b.dataset.delete), b.dataset.username))
+      );
+    }
+
+    document.getElementById('u-apply').addEventListener('click', () => loadUsers(1));
+    document.getElementById('u-search').addEventListener('keydown', e => { if (e.key === 'Enter') loadUsers(1); });
+    document.getElementById('u-role').addEventListener('change', () => loadUsers(1));
+    document.getElementById('u-status').addEventListener('change', () => loadUsers(1));
+
+    // ---------- Edit user modal ----------
+    async function openEdit(userId) {
+      await loadRolesForSelect();
+
+      const r = await fetch(`/admin/api/users/${userId}`);
+      if (!r.ok) { toast('Failed to load user', 'error'); return; }
+      const { user } = await r.json();
+
+      document.getElementById('edit-title').textContent = `Edit ${user.full_name || user.username}`;
+      document.getElementById('e-id').value = user.id;
+      document.getElementById('e-full_name').value = user.full_name || '';
+      document.getElementById('e-email').value = user.email || '';
+      document.getElementById('e-department').value = user.department || '';
+      document.getElementById('e-phone').value = user.phone || '';
+      document.getElementById('e-is_active').value = user.is_active ? 'true' : 'false';
+      document.getElementById('e-is_verified').value = user.is_verified ? 'true' : 'false';
+      document.getElementById('e-password').value = '';
+
+      const sel = document.getElementById('e-role_id');
+      sel.innerHTML = _roles.map(r =>
+        `<option value="${r.id}" ${r.name === user.role ? 'selected' : ''}>${escapeHtml(r.name)}</option>`
+      ).join('');
+
+      document.getElementById('edit-overlay').style.display = 'flex';
+    }
+
+    function closeEdit() { document.getElementById('edit-overlay').style.display = 'none'; }
+    document.getElementById('edit-close').addEventListener('click', closeEdit);
+    document.getElementById('edit-cancel').addEventListener('click', closeEdit);
+
+    document.getElementById('edit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userId = parseInt(document.getElementById('e-id').value);
+      const payload = {
+        full_name: document.getElementById('e-full_name').value,
+        email: document.getElementById('e-email').value,
+        role_id: parseInt(document.getElementById('e-role_id').value),
+        department: document.getElementById('e-department').value,
+        phone: document.getElementById('e-phone').value,
+        is_active: document.getElementById('e-is_active').value === 'true',
+        is_verified: document.getElementById('e-is_verified').value === 'true',
+      };
+
+      const r = await fetch(`/admin/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await r.json();
+      if (!r.ok) { toast(data.error || 'Update failed', 'error'); return; }
+
+      // optional password reset
+      const newPass = document.getElementById('e-password').value;
+      if (newPass && newPass.length >= 8) {
+        const pr = await fetch(`/admin/api/users/${userId}/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_password: newPass }),
+        });
+        const pd = await pr.json();
+        if (!pr.ok) { toast(pd.error || 'Password reset failed', 'error'); return; }
+        toast('User updated and password reset');
+      } else {
+        toast('User updated successfully');
+      }
+
+      closeEdit();
+      loadUsers(_page);
+      loadStats();
+    });
+
+    async function deleteUser(userId, username) {
+      if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+      const r = await fetch(`/admin/api/users/${userId}`, { method: 'DELETE' });
+      const d = await r.json();
+      if (r.ok) {
+        toast(d.message || 'User deleted');
+        loadUsers(_page);
+        loadStats();
+      } else {
+        toast(d.error || 'Delete failed', 'error');
+      }
+    }
+
+    // ---------- Roles ----------
+    async function loadRoles() {
+      const r = await fetch('/admin/api/roles');
+      const d = await r.json();
+      const list = document.getElementById('roles-list');
+      list.innerHTML = (d.roles || []).map(role => {
+        const perms = Object.entries(role.permissions || {})
+          .filter(([, v]) => v)
+          .map(([k]) => `<span class="badge badge-low" style="margin:2px;">${escapeHtml(k.replace(/_/g, ' '))}</span>`)
+          .join(' ') || '<span style="color:var(--text-mute);">No permissions enabled</span>';
+        const tone = role.name === 'admin' ? 'critical' : role.name === 'analyst' ? 'medium' : 'low';
+        return `
+          <div style="padding:16px; background: rgba(10,15,31,0.4); border:1px solid var(--border); border-radius:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <span class="badge badge-${tone}" style="text-transform:uppercase;">${escapeHtml(role.name)}</span>
+                  <span style="font-size:12.5px; color:var(--text-dim);">${role.user_count} user${role.user_count === 1 ? '' : 's'}</span>
+                </div>
+                <div style="font-size:13px; color:var(--text-dim); margin-top:6px;">${escapeHtml(role.description || '')}</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;">${perms}</div>
+          </div>`;
+      }).join('') || '<div class="empty-state">No roles found.</div>';
+    }
+
+    // ---------- Audit ----------
+    async function loadAudit() {
+      const r = await fetch('/admin/api/audit-logs?per_page=100');
+      const d = await r.json();
+      const tbody = document.getElementById('audit-body');
+      if (!d.logs || !d.logs.length) {
+        tbody.innerHTML = `<tr class="empty"><td colspan="6">No audit events yet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = d.logs.map(l => {
+        const tone = l.status === 'failure' ? 'critical' : l.status === 'error' ? 'high' : 'low';
+        return `
+          <tr>
+            <td>${escapeHtml(fmtDate(l.created_at))}</td>
+            <td>${escapeHtml(l.username || '—')}</td>
+            <td><span class="txn-id">${escapeHtml(l.action)}</span></td>
+            <td>${escapeHtml(l.resource || '—')}${l.resource_id ? ` · ${escapeHtml(l.resource_id)}` : ''}</td>
+            <td><span class="badge badge-${tone}">${escapeHtml(l.status || '—')}</span></td>
+            <td>${escapeHtml(l.ip_address || '—')}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ---------- init ----------
+    loadStats();
+    loadRolesForSelect();
+    loadUsers(1);
+    setInterval(loadStats, 8000);
+  </script>
+</body>
+</html>
