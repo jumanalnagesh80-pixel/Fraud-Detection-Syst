@@ -93,8 +93,9 @@ def create_app() -> Flask:
     # Initialize database and create default roles/admin
     with app.app_context():
         db.create_all()
-        from src.auth.init_roles import init_default_roles, create_default_admin
+        from src.auth.init_roles import init_default_roles, create_default_admin, ensure_user_columns
         try:
+            ensure_user_columns()
             init_default_roles()
             create_default_admin()
         except Exception as e:

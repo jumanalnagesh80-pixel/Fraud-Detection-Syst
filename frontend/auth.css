@@ -380,3 +380,101 @@ html, body {
     align-items: flex-start;
   }
 }
+
+
+
+/* ============================================================
+   Face Login overlay (login page)
+   ============================================================ */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 18px 0 14px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.auth-divider span { padding: 0 12px; }
+
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+.face-login-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 18, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.face-login-card {
+  background: rgba(20, 27, 45, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 18px;
+  padding: 24px;
+  width: 100%;
+  max-width: 540px;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.7);
+  color: #e6ecff;
+}
+
+.face-login-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.face-login-head h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+.face-login-close {
+  background: rgba(148, 163, 184, 0.12);
+  border: none;
+  color: #e6ecff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.face-login-close:hover { background: rgba(239, 68, 68, 0.25); }
+
+.face-login-card .form-group label {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 6px;
+}
+.face-login-card .form-group input {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(10, 15, 31, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  color: #e6ecff;
+  font-size: 14px;
+  font-family: inherit;
+}
+.face-login-card .form-group input:focus {
+  outline: none;
+  border-color: #6366f1;
+}

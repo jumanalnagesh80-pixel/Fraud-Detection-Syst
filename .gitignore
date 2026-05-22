@@ -1,36 +1,34 @@
-# Python
-__pycache__/
-*.py[cod]
-*.so
-*.egg-info/
-.venv/
-venv/
-env/
 
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.idea/
-.vscode/
-*.swp
-
-# Project
+build/
+# Build / dist
+.coverage
+data/processed/
 data/raw/*
 !data/raw/.gitkeep
 data/synthetic/*
 !data/synthetic/.gitkeep
-data/processed/
-models/trained/*.pkl
-logs/
-*.log
-
-# Build / dist
-build/
+*.db
 dist/
-
-# Tests / coverage
-.pytest_cache/
-.coverage
+.DS_Store
+*.egg-info/
+env/
 htmlcov/
+# IDE
+.idea/
+instance/
+*.log
+logs/
+models/trained/*.pkl
+# OS
+# Project
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# Python
+*.so
+*.swp
+# Tests / coverage
+Thumbs.db
+.venv/
+venv/
+.vscode/

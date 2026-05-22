@@ -179,6 +179,38 @@
           </div>
         </form>
       </div>
+
+      <div class="card">
+        <h3 class="card-title">Face Authentication</h3>
+        <p class="card-sub">Enable login with your face — uses your camera, all detection happens in your browser.</p>
+
+        <div id="face-status" class="face-status">
+          <span class="face-dot face-dot-off"></span>
+          <span id="face-status-text">Not enrolled</span>
+        </div>
+
+        <div class="face-enroll-wrap" id="face-enroll-wrap" style="display:none;">
+          <div class="face-video-wrap">
+            <video id="face-video" autoplay muted playsinline></video>
+            <canvas id="face-overlay"></canvas>
+            <div class="face-hint" id="face-hint">Loading face detection model…</div>
+          </div>
+          <div class="face-controls">
+            <button type="button" class="btn btn-ghost" id="btn-face-cancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btn-face-capture" disabled>Capture & Enroll</button>
+          </div>
+        </div>
+
+        <div class="face-actions" id="face-actions">
+          <button type="button" class="btn btn-primary" id="btn-face-enroll">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span id="btn-face-enroll-text">Enroll My Face</span>
+          </button>
+          <button type="button" class="btn btn-ghost" id="btn-face-disable" style="display:none;">Disable Face Login</button>
+        </div>
+      </div>
     </section>
 
     <!-- Notifications Tab -->
@@ -246,6 +278,7 @@
 
   <div id="toast-container" class="toast-container"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <script>
     // ===== Tabs =====
     document.querySelectorAll('.tab').forEach(t => {
@@ -435,6 +468,185 @@
     // ===== Init =====
     loadProfile();
     loadCountries();
+
+    // ===== Face Authentication =====
+    // Models hosted on jsdelivr (no extra hosting needed)
+    const FACE_MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+    let faceModelsLoaded = false;
+    let faceVideoStream = null;
+    let faceLoopHandle = null;
+    let lastFaceDescriptor = null;
+
+    async function loadFaceModels() {
+      if (faceModelsLoaded) return;
+      const hint = document.getElementById('face-hint');
+      try {
+        hint.textContent = 'Loading face detection model…';
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL),
+        ]);
+        faceModelsLoaded = true;
+        hint.textContent = 'Position your face in the frame';
+      } catch (err) {
+        console.error(err);
+        hint.textContent = 'Failed to load face model. Check your internet connection.';
+        toast('Failed to load face detection model', 'error');
+      }
+    }
+
+    function updateFaceStatus(enabled, enrolledAt) {
+      const dot = document.querySelector('.face-dot');
+      const text = document.getElementById('face-status-text');
+      const enrollBtn = document.getElementById('btn-face-enroll');
+      const disableBtn = document.getElementById('btn-face-disable');
+      const enrollText = document.getElementById('btn-face-enroll-text');
+      if (enabled) {
+        dot.classList.remove('face-dot-off');
+        dot.classList.add('face-dot-on');
+        text.textContent = enrolledAt
+          ? `Enrolled · ${new Date(enrolledAt).toLocaleString()}`
+          : 'Enrolled';
+        enrollText.textContent = 'Re-enroll My Face';
+        disableBtn.style.display = 'inline-flex';
+      } else {
+        dot.classList.add('face-dot-off');
+        dot.classList.remove('face-dot-on');
+        text.textContent = 'Not enrolled';
+        enrollText.textContent = 'Enroll My Face';
+        disableBtn.style.display = 'none';
+      }
+    }
+
+    async function startFaceCamera() {
+      const wrap = document.getElementById('face-enroll-wrap');
+      wrap.style.display = 'block';
+      document.getElementById('face-actions').style.display = 'none';
+
+      await loadFaceModels();
+      if (!faceModelsLoaded) return;
+
+      try {
+        faceVideoStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 480, height: 360, facingMode: 'user' },
+        });
+        const video = document.getElementById('face-video');
+        video.srcObject = faceVideoStream;
+        video.onloadedmetadata = () => detectFaceLoop();
+      } catch (err) {
+        toast('Camera access denied. Please allow camera permission.', 'error');
+        stopFaceCamera();
+      }
+    }
+
+    function stopFaceCamera() {
+      if (faceVideoStream) {
+        faceVideoStream.getTracks().forEach(t => t.stop());
+        faceVideoStream = null;
+      }
+      if (faceLoopHandle) {
+        clearTimeout(faceLoopHandle);
+        faceLoopHandle = null;
+      }
+      lastFaceDescriptor = null;
+      document.getElementById('btn-face-capture').disabled = true;
+      document.getElementById('face-enroll-wrap').style.display = 'none';
+      document.getElementById('face-actions').style.display = 'flex';
+    }
+
+    async function detectFaceLoop() {
+      const video = document.getElementById('face-video');
+      const canvas = document.getElementById('face-overlay');
+      const hint = document.getElementById('face-hint');
+      const captureBtn = document.getElementById('btn-face-capture');
+      if (!video || video.paused || video.ended) return;
+
+      const displaySize = { width: video.videoWidth || 480, height: video.videoHeight || 360 };
+      faceapi.matchDimensions(canvas, displaySize);
+
+      try {
+        const detection = await faceapi
+          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (detection) {
+          const resized = faceapi.resizeResults(detection, displaySize);
+          // draw a single rectangle around the face
+          const box = resized.detection.box;
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(box.x, box.y, box.width, box.height);
+          lastFaceDescriptor = Array.from(detection.descriptor);
+          captureBtn.disabled = false;
+          hint.textContent = '✓ Face detected — click "Capture & Enroll"';
+        } else {
+          lastFaceDescriptor = null;
+          captureBtn.disabled = true;
+          hint.textContent = 'Position your face clearly in the frame';
+        }
+      } catch (err) {
+        // ignore transient errors
+      }
+
+      faceLoopHandle = setTimeout(detectFaceLoop, 250);
+    }
+
+    async function enrollFace() {
+      if (!lastFaceDescriptor) {
+        toast('No face detected — try again', 'error');
+        return;
+      }
+      try {
+        const r = await fetch('/auth/api/face/enroll', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ descriptor: lastFaceDescriptor }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+          toast('Face enrolled successfully — you can now login with your face');
+          stopFaceCamera();
+          updateFaceStatus(true, data.enrolled_at);
+        } else {
+          toast(data.error || 'Failed to enroll face', 'error');
+        }
+      } catch (err) {
+        toast('Network error during enrollment', 'error');
+      }
+    }
+
+    async function disableFace() {
+      if (!confirm('Disable face login? You will need to re-enroll to use it again.')) return;
+      const r = await fetch('/auth/api/face/disable', { method: 'POST' });
+      if (r.ok) {
+        toast('Face login disabled');
+        updateFaceStatus(false);
+      } else {
+        toast('Failed to disable', 'error');
+      }
+    }
+
+    document.getElementById('btn-face-enroll').addEventListener('click', startFaceCamera);
+    document.getElementById('btn-face-cancel').addEventListener('click', stopFaceCamera);
+    document.getElementById('btn-face-capture').addEventListener('click', enrollFace);
+    document.getElementById('btn-face-disable').addEventListener('click', disableFace);
+
+    // Hook into existing loadProfile to also update face status
+    const _origLoadProfile = loadProfile;
+    loadProfile = async function () {
+      await _origLoadProfile();
+      try {
+        const r = await fetch('/auth/api/me');
+        const d = await r.json();
+        updateFaceStatus(!!d.user.face_enabled, d.user.face_enrolled_at);
+      } catch (e) { /* ignore */ }
+    };
+    loadProfile();
   </script>
 </body>
 </html>

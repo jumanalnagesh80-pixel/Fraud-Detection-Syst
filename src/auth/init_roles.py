@@ -114,3 +114,41 @@ def create_default_admin(username='admin', email='admin@frauddetection.local', p
     print(f"  Password: {password}")
     print(f"  Email: {email}")
     print(f"\n⚠️  IMPORTANT: Change the default password immediately!")
+
+
+
+def ensure_user_columns():
+    """
+    Lightweight schema migration: add columns that may be missing from
+    older SQLite databases. SQLAlchemy's create_all() does not modify
+    existing tables, so we ALTER TABLE manually.
+
+    This is a no-op for fresh databases (columns already exist) and for
+    columns that were added in a previous run.
+    """
+    columns = [
+        # column_name, sql_type
+        ('country',                'VARCHAR(10)'),
+        ('preferred_currency',     'VARCHAR(10)'),
+        ('job_title',              'VARCHAR(100)'),
+        ('bio',                    'TEXT'),
+        ('security_question',      'VARCHAR(255)'),
+        ('security_answer_hash',   'VARCHAR(255)'),
+        ('two_factor_enabled',     'BOOLEAN DEFAULT 0'),
+        ('notify_email',           'BOOLEAN DEFAULT 1'),
+        ('notify_high_risk',       'BOOLEAN DEFAULT 1'),
+        ('notify_critical_only',   'BOOLEAN DEFAULT 0'),
+        ('face_descriptor',        'JSON'),
+        ('face_enabled',           'BOOLEAN DEFAULT 0'),
+        ('face_enrolled_at',       'DATETIME'),
+    ]
+
+    from sqlalchemy import text
+    for name, sql_type in columns:
+        try:
+            db.session.execute(text(f'ALTER TABLE users ADD COLUMN {name} {sql_type}'))
+            db.session.commit()
+            print(f"Added missing column: users.{name}")
+        except Exception:
+            # Column already exists — that's fine
+            db.session.rollback()

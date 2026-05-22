@@ -73,6 +73,11 @@ class User(UserMixin, db.Model):
     security_answer_hash = db.Column(db.String(255))
     two_factor_enabled = db.Column(db.Boolean, default=False)
     
+    # Face authentication
+    face_descriptor = db.Column(db.JSON)             # 128-dim float array from face-api.js
+    face_enabled = db.Column(db.Boolean, default=False)
+    face_enrolled_at = db.Column(db.DateTime)
+    
     # Notification preferences
     notify_email = db.Column(db.Boolean, default=True)
     notify_high_risk = db.Column(db.Boolean, default=True)
@@ -139,6 +144,8 @@ class User(UserMixin, db.Model):
             'two_factor_enabled': self.two_factor_enabled,
             'has_security_question': bool(self.security_question),
             'security_question': self.security_question if include_sensitive else None,
+            'face_enabled': bool(self.face_enabled and self.face_descriptor),
+            'face_enrolled_at': self.face_enrolled_at.isoformat() if self.face_enrolled_at else None,
             'notify_email': self.notify_email,
             'notify_high_risk': self.notify_high_risk,
             'notify_critical_only': self.notify_critical_only,

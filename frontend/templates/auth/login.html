@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/auth.css" />
+  <link rel="stylesheet" href="/profile.css" />
 </head>
 <body>
   <div class="auth-container">
@@ -78,8 +79,41 @@
         </button>
       </form>
 
+      <div class="auth-divider"><span>or</span></div>
+
+      <button type="button" class="btn btn-ghost btn-block" id="btn-face-login">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Sign in with Face
+      </button>
+
       <div class="auth-footer">
         <p>Don't have an account? <a href="/auth/register" class="link-primary">Create one</a></p>
+      </div>
+    </div>
+
+    <!-- Face login overlay -->
+    <div class="face-login-overlay" id="face-login-overlay" style="display:none;">
+      <div class="face-login-card">
+        <div class="face-login-head">
+          <h3>Face Login</h3>
+          <button type="button" class="face-login-close" id="face-login-close">&times;</button>
+        </div>
+        <div class="form-group">
+          <label for="face-username">Username or Email</label>
+          <input type="text" id="face-username" placeholder="Enter your username" autocomplete="username" />
+        </div>
+        <div class="face-video-wrap" style="margin-top:10px;">
+          <video id="face-login-video" autoplay muted playsinline></video>
+          <canvas id="face-login-overlay-canvas"></canvas>
+          <div class="face-hint" id="face-login-hint">Click Start to begin</div>
+        </div>
+        <div class="face-controls" style="margin-top:14px;">
+          <button type="button" class="btn btn-ghost" id="face-login-cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="face-login-start">Start Camera</button>
+        </div>
       </div>
     </div>
 
@@ -90,6 +124,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <script>
     // Password toggle
     document.getElementById('toggle-password').addEventListener('click', function() {
@@ -161,6 +196,135 @@
         alert.classList.remove('show');
         setTimeout(() => alert.remove(), 300);
       }, 3000);
+    }
+
+    // ===== Face Login =====
+    const FACE_MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+    let fl_modelsLoaded = false;
+    let fl_stream = null;
+    let fl_loop = null;
+    let fl_busy = false;
+
+    const overlay = document.getElementById('face-login-overlay');
+    document.getElementById('btn-face-login').addEventListener('click', () => {
+      overlay.style.display = 'flex';
+    });
+    document.getElementById('face-login-close').addEventListener('click', closeFaceLogin);
+    document.getElementById('face-login-cancel').addEventListener('click', closeFaceLogin);
+    document.getElementById('face-login-start').addEventListener('click', startFaceLogin);
+
+    function closeFaceLogin() {
+      stopFlCamera();
+      overlay.style.display = 'none';
+      document.getElementById('face-login-hint').textContent = 'Click Start to begin';
+      document.getElementById('face-login-start').disabled = false;
+      document.getElementById('face-login-start').textContent = 'Start Camera';
+    }
+
+    function stopFlCamera() {
+      if (fl_stream) {
+        fl_stream.getTracks().forEach(t => t.stop());
+        fl_stream = null;
+      }
+      if (fl_loop) { clearTimeout(fl_loop); fl_loop = null; }
+    }
+
+    async function loadFaceModels() {
+      if (fl_modelsLoaded) return;
+      const hint = document.getElementById('face-login-hint');
+      hint.textContent = 'Loading face model…';
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL),
+      ]);
+      fl_modelsLoaded = true;
+    }
+
+    async function startFaceLogin() {
+      const username = document.getElementById('face-username').value.trim();
+      if (!username) {
+        showAlert('Enter your username first', 'error');
+        return;
+      }
+      const startBtn = document.getElementById('face-login-start');
+      startBtn.disabled = true;
+      startBtn.textContent = 'Loading…';
+
+      try {
+        await loadFaceModels();
+        fl_stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 480, height: 360, facingMode: 'user' },
+        });
+        const video = document.getElementById('face-login-video');
+        video.srcObject = fl_stream;
+        video.onloadedmetadata = () => detectAndLogin(username);
+        startBtn.textContent = 'Looking for face…';
+      } catch (err) {
+        console.error(err);
+        showAlert('Camera access denied or model failed to load', 'error');
+        startBtn.disabled = false;
+        startBtn.textContent = 'Start Camera';
+      }
+    }
+
+    async function detectAndLogin(username) {
+      const video = document.getElementById('face-login-video');
+      const canvas = document.getElementById('face-login-overlay-canvas');
+      const hint = document.getElementById('face-login-hint');
+      if (!video || video.paused || video.ended || fl_busy) return;
+
+      const displaySize = { width: video.videoWidth || 480, height: video.videoHeight || 360 };
+      faceapi.matchDimensions(canvas, displaySize);
+
+      try {
+        const detection = await faceapi
+          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (detection) {
+          const resized = faceapi.resizeResults(detection, displaySize);
+          const box = resized.detection.box;
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(box.x, box.y, box.width, box.height);
+          hint.textContent = 'Verifying…';
+
+          fl_busy = true;
+          const r = await fetch('/auth/api/face/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username,
+              descriptor: Array.from(detection.descriptor),
+            }),
+          });
+          const data = await r.json();
+
+          if (r.ok) {
+            hint.textContent = '✓ Match — signing in…';
+            showAlert('Face matched! Redirecting…', 'success');
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            stopFlCamera();
+            setTimeout(() => { window.location.href = '/dashboard'; }, 600);
+            return;
+          } else {
+            hint.textContent = data.error || 'Face did not match — keep trying';
+            fl_busy = false;
+          }
+        } else {
+          hint.textContent = 'No face detected — center your face';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+
+      fl_loop = setTimeout(() => detectAndLogin(username), 600);
     }
   </script>
 </body>

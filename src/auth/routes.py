@@ -495,6 +495,185 @@ def api_forgot_password():
 
 
 # ============================================================
+# FACE AUTHENTICATION
+# ============================================================
+# Uses face-api.js client-side to compute a 128-dim descriptor.
+# We compare the descriptors server-side via Euclidean distance.
+# A distance < 0.6 is the standard same-face threshold for face-api.js.
+FACE_MATCH_THRESHOLD = 0.6
+
+
+def _euclidean_distance(a, b) -> float:
+    """Euclidean distance between two equal-length numeric sequences."""
+    if not a or not b or len(a) != len(b):
+        return float('inf')
+    s = 0.0
+    for x, y in zip(a, b):
+        d = float(x) - float(y)
+        s += d * d
+    return s ** 0.5
+
+
+def _validate_descriptor(desc) -> bool:
+    """Sanity-check a face descriptor: list of 128 numbers."""
+    if not isinstance(desc, list):
+        return False
+    if len(desc) != 128:
+        return False
+    try:
+        return all(isinstance(float(x), float) for x in desc)
+    except (TypeError, ValueError):
+        return False
+
+
+@auth_bp.route('/api/face/enroll', methods=['POST'])
+@login_required
+def api_face_enroll():
+    """
+    Enroll (or re-enroll) the current user's face.
+
+    Request body:
+    {
+        "descriptor": [0.123, -0.456, ...]   // 128 floats from face-api.js
+    }
+    """
+    data = request.get_json() or {}
+    descriptor = data.get('descriptor')
+
+    if not _validate_descriptor(descriptor):
+        return jsonify({'error': 'Invalid face descriptor (expected 128 numbers)'}), 400
+
+    current_user.face_descriptor = list(map(float, descriptor))
+    current_user.face_enabled = True
+    current_user.face_enrolled_at = datetime.utcnow()
+    current_user.updated_at = datetime.utcnow()
+    db.session.commit()
+
+    log_audit(
+        user_id=current_user.id,
+        username=current_user.username,
+        action='face_enrolled',
+        resource='auth',
+        status='success',
+    )
+
+    return jsonify({
+        'success': True,
+        'message': 'Face authentication enrolled',
+        'enrolled_at': current_user.face_enrolled_at.isoformat(),
+    }), 200
+
+
+@auth_bp.route('/api/face/disable', methods=['POST'])
+@login_required
+def api_face_disable():
+    """Disable face authentication for the current user."""
+    current_user.face_enabled = False
+    current_user.face_descriptor = None
+    current_user.face_enrolled_at = None
+    current_user.updated_at = datetime.utcnow()
+    db.session.commit()
+
+    log_audit(
+        user_id=current_user.id,
+        username=current_user.username,
+        action='face_disabled',
+        resource='auth',
+        status='success',
+    )
+
+    return jsonify({'success': True, 'message': 'Face authentication disabled'}), 200
+
+
+@auth_bp.route('/api/face/login', methods=['POST'])
+def api_face_login():
+    """
+    Login using face descriptor instead of password.
+
+    Request body:
+    {
+        "username": "admin",
+        "descriptor": [0.123, -0.456, ...]
+    }
+    """
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip()
+    descriptor = data.get('descriptor')
+
+    if not username:
+        return jsonify({'error': 'Username required'}), 400
+    if not _validate_descriptor(descriptor):
+        return jsonify({'error': 'Invalid face descriptor'}), 400
+
+    user = User.query.filter(
+        (User.username == username) | (User.email == username.lower())
+    ).first()
+
+    # Generic message to avoid revealing which usernames exist or have face login
+    if not user or not user.face_enabled or not user.face_descriptor:
+        return jsonify({'error': 'Face login not available for this account'}), 401
+
+    if user.locked_until and user.locked_until > datetime.utcnow():
+        return jsonify({
+            'error': 'Account is temporarily locked',
+            'locked_until': user.locked_until.isoformat(),
+        }), 403
+
+    if not user.is_active:
+        return jsonify({'error': 'Account is disabled'}), 403
+
+    distance = _euclidean_distance(user.face_descriptor, descriptor)
+
+    if distance > FACE_MATCH_THRESHOLD:
+        user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+        if user.failed_login_attempts >= 5:
+            user.locked_until = datetime.utcnow() + timedelta(minutes=15)
+        db.session.commit()
+
+        log_audit(
+            user_id=user.id,
+            username=user.username,
+            action='face_login_failed',
+            resource='auth',
+            status='failure',
+            details={'distance': round(distance, 4), 'threshold': FACE_MATCH_THRESHOLD},
+        )
+        return jsonify({
+            'error': 'Face did not match',
+            'distance': round(distance, 4),
+        }), 401
+
+    # Match — log the user in
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.last_login = datetime.utcnow()
+    db.session.commit()
+
+    login_user(user, remember=False)
+
+    access_token = create_access_token(identity=user.id, fresh=True)
+    refresh_token = create_refresh_token(identity=user.id)
+
+    log_audit(
+        user_id=user.id,
+        username=user.username,
+        action='face_login_success',
+        resource='auth',
+        status='success',
+        details={'distance': round(distance, 4)},
+    )
+
+    return jsonify({
+        'success': True,
+        'message': 'Face login successful',
+        'user': user.to_dict(),
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'distance': round(distance, 4),
+    }), 200
+
+
+# ============================================================
 # HELPER FUNCTIONS
 # ============================================================
 
