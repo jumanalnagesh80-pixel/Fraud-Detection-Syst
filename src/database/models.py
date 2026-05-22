@@ -61,10 +61,22 @@ class User(UserMixin, db.Model):
     avatar_url = db.Column(db.String(255))
     phone = db.Column(db.String(20))
     department = db.Column(db.String(50))
+    country = db.Column(db.String(10))           # ISO country code
+    preferred_currency = db.Column(db.String(10), default='USD')
+    job_title = db.Column(db.String(100))
+    bio = db.Column(db.Text)
     
     # Security
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime)
+    security_question = db.Column(db.String(255))   # e.g., "What's your pet's name?"
+    security_answer_hash = db.Column(db.String(255))
+    two_factor_enabled = db.Column(db.Boolean, default=False)
+    
+    # Notification preferences
+    notify_email = db.Column(db.Boolean, default=True)
+    notify_high_risk = db.Column(db.Boolean, default=True)
+    notify_critical_only = db.Column(db.Boolean, default=False)
     
     # Relationships
     role = db.relationship('Role', back_populates='users')
@@ -80,6 +92,18 @@ class User(UserMixin, db.Model):
     def check_password(self, password: str) -> bool:
         """Verify password against hash."""
         return check_password_hash(self.password_hash, password)
+    
+    def set_security_answer(self, answer: str) -> None:
+        """Hash and store security question answer (case-insensitive)."""
+        normalized = (answer or "").strip().lower()
+        self.security_answer_hash = generate_password_hash(normalized)
+    
+    def check_security_answer(self, answer: str) -> bool:
+        """Verify security answer."""
+        if not self.security_answer_hash:
+            return False
+        normalized = (answer or "").strip().lower()
+        return check_password_hash(self.security_answer_hash, normalized)
     
     def has_permission(self, permission: str) -> bool:
         """Check if user has specific permission via role."""
@@ -107,6 +131,17 @@ class User(UserMixin, db.Model):
             'last_login': self.last_login.isoformat() if self.last_login else None,
             'avatar_url': self.avatar_url,
             'department': self.department,
+            'phone': self.phone,
+            'country': self.country,
+            'preferred_currency': self.preferred_currency,
+            'job_title': self.job_title,
+            'bio': self.bio,
+            'two_factor_enabled': self.two_factor_enabled,
+            'has_security_question': bool(self.security_question),
+            'security_question': self.security_question if include_sensitive else None,
+            'notify_email': self.notify_email,
+            'notify_high_risk': self.notify_high_risk,
+            'notify_critical_only': self.notify_critical_only,
         }
         return data
     

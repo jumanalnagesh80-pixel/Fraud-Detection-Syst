@@ -301,6 +301,200 @@ def api_change_password():
 
 
 # ============================================================
+# PROFILE MANAGEMENT
+# ============================================================
+
+@auth_bp.route('/profile', methods=['GET'])
+@login_required
+def profile_page():
+    """Render user profile page."""
+    return render_template('auth/profile.html')
+
+
+@auth_bp.route('/api/profile', methods=['PUT'])
+@login_required
+def api_update_profile():
+    """
+    Update user profile (non-sensitive fields).
+    
+    Request body:
+    {
+        "full_name": "John Doe",
+        "phone": "+1-555-0100",
+        "department": "Risk",
+        "country": "US",
+        "preferred_currency": "USD",
+        "job_title": "Fraud Analyst",
+        "bio": "...",
+        "notify_email": true,
+        "notify_high_risk": true,
+        "notify_critical_only": false
+    }
+    """
+    data = request.get_json() or {}
+    
+    # Whitelist editable fields (security: never let users change role/is_active here)
+    editable_fields = [
+        'full_name', 'phone', 'department', 'country', 'preferred_currency',
+        'job_title', 'bio', 'avatar_url',
+        'notify_email', 'notify_high_risk', 'notify_critical_only',
+    ]
+    
+    updated = []
+    for field in editable_fields:
+        if field in data:
+            setattr(current_user, field, data[field])
+            updated.append(field)
+    
+    # Special validation for email (still allow if explicitly provided)
+    if 'email' in data and data['email'] != current_user.email:
+        new_email = data['email'].strip().lower()
+        existing = User.query.filter(User.email == new_email, User.id != current_user.id).first()
+        if existing:
+            return jsonify({'error': 'Email already in use'}), 409
+        current_user.email = new_email
+        current_user.is_verified = False  # require re-verification
+        updated.append('email')
+    
+    current_user.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    log_audit(
+        user_id=current_user.id,
+        username=current_user.username,
+        action='profile_updated',
+        resource='user',
+        resource_id=str(current_user.id),
+        status='success',
+        details={'fields': updated}
+    )
+    
+    return jsonify({
+        'success': True,
+        'message': 'Profile updated successfully',
+        'user': current_user.to_dict(include_sensitive=True),
+    }), 200
+
+
+@auth_bp.route('/api/security-question', methods=['POST'])
+@login_required
+def api_set_security_question():
+    """
+    Set or update security question and answer.
+    
+    Request body:
+    {
+        "question": "What was the name of your first pet?",
+        "answer": "Fluffy",
+        "current_password": "MyPass123"
+    }
+    """
+    data = request.get_json() or {}
+    
+    question = (data.get('question') or '').strip()
+    answer = (data.get('answer') or '').strip()
+    current_password = data.get('current_password', '')
+    
+    if not question or not answer or not current_password:
+        return jsonify({'error': 'Question, answer, and current password required'}), 400
+    
+    if len(answer) < 2:
+        return jsonify({'error': 'Answer must be at least 2 characters'}), 400
+    
+    # Verify password before allowing security change
+    if not current_user.check_password(current_password):
+        return jsonify({'error': 'Current password is incorrect'}), 401
+    
+    current_user.security_question = question
+    current_user.set_security_answer(answer)
+    current_user.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    log_audit(
+        user_id=current_user.id,
+        username=current_user.username,
+        action='security_question_set',
+        resource='auth',
+        status='success'
+    )
+    
+    return jsonify({
+        'success': True,
+        'message': 'Security question saved successfully'
+    }), 200
+
+
+@auth_bp.route('/api/forgot-password', methods=['POST'])
+def api_forgot_password():
+    """
+    Initiate password recovery using security question.
+    
+    Step 1: POST { "username": "john" } -> returns { "question": "..." }
+    Step 2: POST { "username": "john", "answer": "...", "new_password": "..." } -> resets
+    """
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip()
+    
+    if not username:
+        return jsonify({'error': 'Username required'}), 400
+    
+    user = User.query.filter(
+        (User.username == username) | (User.email == username.lower())
+    ).first()
+    
+    # Don't reveal whether user exists
+    if not user or not user.security_question:
+        # Generic response to avoid enumeration
+        return jsonify({
+            'error': 'No security question configured for this account. Contact your administrator.'
+        }), 404
+    
+    answer = data.get('answer')
+    new_password = data.get('new_password')
+    
+    # Step 1: just return the question
+    if not answer:
+        return jsonify({
+            'success': True,
+            'security_question': user.security_question
+        }), 200
+    
+    # Step 2: verify answer and reset password
+    if not user.check_security_answer(answer):
+        log_audit(
+            user_id=user.id,
+            username=user.username,
+            action='password_reset_failed',
+            resource='auth',
+            status='failure',
+            details={'reason': 'wrong_security_answer'}
+        )
+        return jsonify({'error': 'Incorrect answer'}), 401
+    
+    if not new_password or len(new_password) < 8:
+        return jsonify({'error': 'New password must be at least 8 characters'}), 400
+    
+    user.set_password(new_password)
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    log_audit(
+        user_id=user.id,
+        username=user.username,
+        action='password_reset_via_security_question',
+        resource='auth',
+        status='success'
+    )
+    
+    return jsonify({
+        'success': True,
+        'message': 'Password reset successfully. You can now log in with your new password.'
+    }), 200
+
+
+# ============================================================
 # HELPER FUNCTIONS
 # ============================================================
 

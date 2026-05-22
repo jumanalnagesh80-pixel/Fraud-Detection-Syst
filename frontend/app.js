@@ -13,6 +13,8 @@ const API = {
   simulate: '/api/simulate',
   predict: '/api/predict',
   health: '/api/health',
+  geoMap: '/api/geo/fraud-map',
+  notifications: '/api/notifications',
 };
 
 const POLL_MS = 3000;
@@ -29,8 +31,10 @@ Chart.defaults.borderColor = 'rgba(148, 163, 184, 0.12)';
 
 let charts = {};
 let knownTxnIds = new Set();
+let knownAlertIds = new Set();
 let lastTxnCount = 0;
 let lastTimestamp = Date.now();
+let throughputHistory = Array(20).fill(0);  // last 20 polling intervals
 
 // ============================================================
 // CHARTS
@@ -126,6 +130,40 @@ function buildCharts() {
     }]},
     options: chartBaseOpts({ legend: false }),
   });
+
+  // Geographic fraud distribution (horizontal bar)
+  charts.geo = new Chart(document.getElementById('chart-geo'), {
+    type: 'bar',
+    data: { labels: [], datasets: [{
+      label: 'Fraud',
+      data: [],
+      backgroundColor: gradientFor('chart-geo', COLORS.red),
+      borderRadius: 6,
+      borderSkipped: false,
+      maxBarThickness: 20,
+    }]},
+    options: { ...chartBaseOpts({ legend: false }), indexAxis: 'y' },
+  });
+
+  // Live throughput (smooth line)
+  charts.throughput = new Chart(document.getElementById('chart-throughput'), {
+    type: 'line',
+    data: {
+      labels: throughputHistory.map((_, i) => `${(throughputHistory.length - 1 - i) * (POLL_MS / 1000)}s`),
+      datasets: [{
+        label: 'Txn/sec',
+        data: throughputHistory.slice(),
+        borderColor: COLORS.cyan,
+        backgroundColor: 'rgba(6, 182, 212, 0.15)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        borderWidth: 2,
+      }],
+    },
+    options: chartBaseOpts({ legend: false }),
+  });
 }
 
 function gradientFor(canvasId, color) {
@@ -209,6 +247,30 @@ async function refresh() {
   }
 }
 
+async function loadGeoData() {
+  try {
+    const data = await fetch(API.geoMap).then(r => r.json());
+    const top = (data.countries || []).filter(c => c.fraud > 0).slice(0, 8);
+    if (charts.geo) {
+      charts.geo.data.labels = top.map(c => `${c.flag} ${c.code}`);
+      charts.geo.data.datasets[0].data = top.map(c => c.fraud);
+      charts.geo.update();
+    }
+  } catch (e) { console.warn('geo data failed', e); }
+}
+
+async function loadNotifications() {
+  try {
+    const data = await fetch(API.notifications).then(r => r.json());
+    const badge = document.getElementById('notif-badge');
+    if (badge) {
+      const unread = data.unread || 0;
+      badge.textContent = unread > 99 ? '99+' : unread;
+      badge.classList.toggle('visible', unread > 0);
+    }
+  } catch (e) { /* ignore */ }
+}
+
 async function loadModelInfo() {
   try {
     const info = await fetch(API.modelInfo).then(r => r.json());
@@ -254,12 +316,22 @@ function updateKpis(m) {
   setText('kpi-fraud-rate', `${((m.fraud_rate || 0) * 100).toFixed(2)}% fraud rate`);
   setText('kpi-uptime', `Uptime ${formatDuration(m.uptime_seconds || 0)}`);
 
-  // throughput estimate (txns since last poll)
+  // throughput estimate (txns per sec since last poll)
   const now = Date.now();
   const dt = (now - lastTimestamp) / 1000;
   const delta = total - lastTxnCount;
   const perMin = dt > 0 ? Math.round((delta / dt) * 60) : 0;
+  const perSec = dt > 0 ? +(delta / dt).toFixed(2) : 0;
   setText('kpi-throughput', `${perMin} / min throughput`);
+
+  // push to throughput history
+  throughputHistory.shift();
+  throughputHistory.push(perSec);
+  if (charts.throughput) {
+    charts.throughput.data.datasets[0].data = throughputHistory.slice();
+    charts.throughput.update('none');
+  }
+
   lastTxnCount = total;
   lastTimestamp = now;
 }
@@ -333,6 +405,27 @@ function decisionBadge(decision) {
 // ------------------------------------------------------------
 function updateAlerts(items) {
   const container = document.getElementById('alerts-list');
+
+  // Detect new alerts and fire toasts
+  let newCount = 0;
+  items.forEach(a => {
+    const id = a.transaction_id;
+    if (id && !knownAlertIds.has(id)) {
+      // skip the very first batch on page load (no toast spam)
+      if (knownAlertIds.size > 0) {
+        const reason = (a.reasons && a.reasons[0]) || 'High-risk transaction';
+        const tone = a.risk_level === 'critical' ? 'error' : 'warning';
+        toast(`${a.risk_level.toUpperCase()}: ${reason} (${(a.fraud_probability * 100).toFixed(0)}%)`, tone);
+        newCount++;
+      }
+      knownAlertIds.add(id);
+    }
+  });
+  // cap memory
+  if (knownAlertIds.size > 1000) {
+    knownAlertIds = new Set(Array.from(knownAlertIds).slice(-500));
+  }
+
   if (!items.length) {
     container.innerHTML = '<div class="empty-state">No alerts yet.</div>';
     return;
@@ -353,6 +446,21 @@ function updateAlerts(items) {
   }).join('');
 }
 
+// Toast notification helper
+function toast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = message;
+  container.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 300);
+  }, 4000);
+}
+
 // ============================================================
 // ACTIONS
 // ============================================================
@@ -362,13 +470,19 @@ async function runSimulation() {
   const original = btn.innerHTML;
   btn.innerHTML = '<span>Simulating…</span>';
   try {
-    await fetch(API.simulate, {
+    const r = await fetch(API.simulate, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ count: 40, fraud_rate: 0.18 }),
     });
+    const data = await r.json();
+    toast(`Simulation complete: ${data.count || 40} transactions scored`, 'success');
     await refresh();
-  } catch (e) { console.error(e); }
+    await loadGeoData();
+  } catch (e) {
+    console.error(e);
+    toast('Simulation failed', 'error');
+  }
   btn.disabled = false;
   btn.innerHTML = original;
 }
@@ -513,9 +627,19 @@ document.addEventListener('DOMContentLoaded', () => {
   loadUserProfile();
   initProfileDropdown();
   refresh();
+  loadGeoData();
+  loadNotifications();
   setInterval(refresh, POLL_MS);
+  setInterval(loadGeoData, POLL_MS * 2);
+  setInterval(loadNotifications, POLL_MS);
 
   document.getElementById('btn-simulate').addEventListener('click', runSimulation);
   document.getElementById('btn-refresh').addEventListener('click', refresh);
   document.getElementById('score-form').addEventListener('submit', submitScoreForm);
+
+  const notifBtn = document.getElementById('btn-notifications');
+  if (notifBtn) notifBtn.addEventListener('click', () => { window.location.href = '/notifications'; });
+
+  // Welcome toast on first load
+  setTimeout(() => toast('Sentinel is live · monitoring transactions', 'info'), 600);
 });

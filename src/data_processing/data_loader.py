@@ -14,6 +14,8 @@ from typing import List, Dict, Any, Optional
 import numpy as np
 import pandas as pd
 
+from .countries import COUNTRIES as ALL_COUNTRIES, HIGH_RISK_COUNTRIES as ALL_HIGH_RISK
+
 
 MERCHANT_CATEGORIES = [
     "grocery", "restaurant", "fuel", "online_retail", "electronics",
@@ -21,8 +23,13 @@ MERCHANT_CATEGORIES = [
     "luxury", "gambling", "crypto", "wire_transfer",
 ]
 
-COUNTRIES = ["US", "CA", "GB", "DE", "FR", "IN", "JP", "AU", "BR", "NG", "RU", "CN"]
-HIGH_RISK_COUNTRIES = {"NG", "RU", "CN"}
+# A representative subset for synthetic data generation (full list: countries.py)
+COUNTRIES = [
+    "US", "CA", "GB", "DE", "FR", "IT", "ES", "NL", "CH", "SE",
+    "IN", "CN", "JP", "KR", "SG", "HK", "AU", "NZ", "BR", "MX",
+    "AR", "AE", "SA", "IL", "ZA", "NG", "EG", "RU", "TR", "PL",
+]
+HIGH_RISK_COUNTRIES = ALL_HIGH_RISK
 
 DEVICE_TYPES = ["mobile_ios", "mobile_android", "web_chrome", "web_firefox", "web_safari", "pos_terminal", "atm"]
 
@@ -55,7 +62,7 @@ def _generate_legitimate_transaction(user_id: str) -> Dict[str, Any]:
         "amount": min(amount, 5000.0),
         "currency": "USD",
         "merchant_category": category,
-        "country": random.choices(COUNTRIES, weights=[40, 8, 8, 6, 6, 8, 5, 4, 4, 3, 4, 4], k=1)[0],
+        "country": random.choice(COUNTRIES),
         "device_type": random.choice(DEVICE_TYPES),
         "is_card_present": random.random() < 0.55,
         "hour": random.choices(range(24), weights=_normal_hour_weights(), k=1)[0],

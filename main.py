@@ -35,7 +35,7 @@ from flask import Flask, send_from_directory, redirect, url_for
 from flask_login import login_required, current_user
 from flask_cors import CORS
 
-from src.api import create_api_blueprint
+from src.api import create_api_blueprint, create_extras_blueprint
 from src.auth import init_auth
 from src.auth.routes import auth_bp
 from src.auth.middleware import init_rbac_middleware
@@ -88,6 +88,7 @@ def create_app() -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(create_api_blueprint())
+    app.register_blueprint(create_extras_blueprint())
     
     # Initialize database and create default roles/admin
     with app.app_context():
@@ -136,6 +137,24 @@ def create_app() -> Flask:
     def main_dashboard():
         """Main fraud detection dashboard."""
         return send_from_directory(app.static_folder, "index.html")
+
+    @app.get("/reports")
+    @login_required
+    def reports_page():
+        """Banker analytics & reports page."""
+        return send_from_directory(app.static_folder, "reports.html")
+
+    @app.get("/transactions")
+    @login_required
+    def transactions_page():
+        """User-facing transaction history page."""
+        return send_from_directory(app.static_folder, "transactions.html")
+
+    @app.get("/notifications")
+    @login_required
+    def notifications_page():
+        """User notifications inbox."""
+        return send_from_directory(app.static_folder, "notifications.html")
 
     return app
 

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile · Sentinel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/profile.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="M9 12l2 2 4-4" />
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Sentinel</div>
+        <div class="brand-tag">My Profile</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a href="/dashboard" class="btn btn-ghost">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+        Back to Dashboard
+      </a>
+      <a href="/auth/logout" class="btn btn-ghost">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Logout
+      </a>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Profile Header -->
+    <section class="profile-header card">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar" id="profile-avatar">U</div>
+        <div class="profile-status" id="profile-status"></div>
+      </div>
+      <div class="profile-info">
+        <h1 class="profile-name" id="profile-name">Loading...</h1>
+        <div class="profile-meta">
+          <span class="badge badge-low" id="profile-role">user</span>
+          <span class="profile-email" id="profile-email"></span>
+        </div>
+        <p class="profile-bio" id="profile-bio">Click "Edit Profile" to add your bio.</p>
+      </div>
+      <div class="profile-stats">
+        <div class="stat">
+          <div class="stat-value" id="stat-member-since">—</div>
+          <div class="stat-label">Member Since</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="stat-last-login">—</div>
+          <div class="stat-label">Last Login</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="stat-account-status">Active</div>
+          <div class="stat-label">Status</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab tab-active" data-tab="general">General</button>
+      <button class="tab" data-tab="security">Security</button>
+      <button class="tab" data-tab="notifications">Notifications</button>
+      <button class="tab" data-tab="preferences">Preferences</button>
+    </div>
+
+    <!-- General Tab -->
+    <section class="tab-panel tab-panel-active" id="panel-general">
+      <div class="card">
+        <h3 class="card-title">Personal Information</h3>
+        <p class="card-sub">Update your personal details</p>
+        <form id="general-form" class="form-grid">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" name="full_name" id="full_name" placeholder="John Doe" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" name="email" id="email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input type="tel" name="phone" id="phone" placeholder="+1 (555) 000-0000" />
+          </div>
+          <div class="field">
+            <label>Job Title</label>
+            <input type="text" name="job_title" id="job_title" placeholder="Fraud Analyst" />
+          </div>
+          <div class="field">
+            <label>Department</label>
+            <input type="text" name="department" id="department" placeholder="Risk Management" />
+          </div>
+          <div class="field">
+            <label>Country</label>
+            <select name="country" id="country">
+              <option value="">Select...</option>
+            </select>
+          </div>
+          <div class="field field-full">
+            <label>Bio</label>
+            <textarea name="bio" id="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+          </div>
+          <div class="field field-action">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Security Tab -->
+    <section class="tab-panel" id="panel-security">
+      <div class="card">
+        <h3 class="card-title">Change Password</h3>
+        <p class="card-sub">Use a strong password with at least 8 characters</p>
+        <form id="password-form" class="form-grid">
+          <div class="field field-full">
+            <label>Current Password</label>
+            <input type="password" name="current_password" id="current_password" required />
+          </div>
+          <div class="field">
+            <label>New Password</label>
+            <input type="password" name="new_password" id="new_password" required minlength="8" />
+          </div>
+          <div class="field">
+            <label>Confirm New Password</label>
+            <input type="password" name="confirm_password" id="confirm_password" required minlength="8" />
+          </div>
+          <div class="field field-action">
+            <button type="submit" class="btn btn-primary">Update Password</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Security Question</h3>
+        <p class="card-sub">Used to recover your account if you forget your password</p>
+        <form id="security-form" class="form-grid">
+          <div class="field field-full">
+            <label>Security Question</label>
+            <select name="question" id="security_question_select">
+              <option value="">Choose a question...</option>
+              <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+              <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+              <option value="What was the make of your first car?">What was the make of your first car?</option>
+              <option value="In what city were you born?">In what city were you born?</option>
+              <option value="What is the name of your first school?">What is the name of your first school?</option>
+              <option value="What is your favorite book?">What is your favorite book?</option>
+            </select>
+          </div>
+          <div class="field field-full">
+            <label>Answer</label>
+            <input type="text" name="answer" id="security_answer" placeholder="Your answer (case-insensitive)" />
+          </div>
+          <div class="field field-full">
+            <label>Confirm Password (required to change security question)</label>
+            <input type="password" name="current_password" id="security_password" required />
+          </div>
+          <div class="field field-action">
+            <button type="submit" class="btn btn-primary">Save Security Question</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Notifications Tab -->
+    <section class="tab-panel" id="panel-notifications">
+      <div class="card">
+        <h3 class="card-title">Email Notifications</h3>
+        <p class="card-sub">Choose what you want to be notified about</p>
+        <form id="notifications-form" class="notification-list">
+          <label class="toggle-row">
+            <div>
+              <div class="toggle-title">Email notifications</div>
+              <div class="toggle-sub">Receive emails about important events</div>
+            </div>
+            <input type="checkbox" name="notify_email" id="notify_email" />
+          </label>
+          <label class="toggle-row">
+            <div>
+              <div class="toggle-title">High-risk transaction alerts</div>
+              <div class="toggle-sub">Get notified when transactions are flagged as high risk</div>
+            </div>
+            <input type="checkbox" name="notify_high_risk" id="notify_high_risk" />
+          </label>
+          <label class="toggle-row">
+            <div>
+              <div class="toggle-title">Critical alerts only</div>
+              <div class="toggle-sub">Reduce noise – only critical-level alerts will reach you</div>
+            </div>
+            <input type="checkbox" name="notify_critical_only" id="notify_critical_only" />
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Preferences</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Preferences Tab -->
+    <section class="tab-panel" id="panel-preferences">
+      <div class="card">
+        <h3 class="card-title">Display Preferences</h3>
+        <p class="card-sub">Customize your dashboard experience</p>
+        <form id="preferences-form" class="form-grid">
+          <div class="field">
+            <label>Preferred Currency</label>
+            <select name="preferred_currency" id="preferred_currency">
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
+              <option value="JPY">JPY - Japanese Yen</option>
+              <option value="INR">INR - Indian Rupee</option>
+              <option value="CAD">CAD - Canadian Dollar</option>
+              <option value="AUD">AUD - Australian Dollar</option>
+              <option value="CHF">CHF - Swiss Franc</option>
+              <option value="CNY">CNY - Chinese Yuan</option>
+              <option value="BRL">BRL - Brazilian Real</option>
+            </select>
+          </div>
+          <div class="field field-action">
+            <button type="submit" class="btn btn-primary">Save Preferences</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    // ===== Tabs =====
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('tab-active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('tab-panel-active'));
+        t.classList.add('tab-active');
+        document.getElementById('panel-' + t.dataset.tab).classList.add('tab-panel-active');
+      });
+    });
+
+    // ===== Toast notifications =====
+    function toast(msg, type = 'success') {
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      requestAnimationFrame(() => t.classList.add('show'));
+      setTimeout(() => {
+        t.classList.remove('show');
+        setTimeout(() => t.remove(), 300);
+      }, 3500);
+    }
+
+    // ===== Load profile =====
+    async function loadProfile() {
+      try {
+        const r = await fetch('/auth/api/me');
+        const data = await r.json();
+        const u = data.user;
+        const initial = (u.full_name || u.username || 'U')[0].toUpperCase();
+        document.getElementById('profile-avatar').textContent = initial;
+        document.getElementById('profile-name').textContent = u.full_name || u.username;
+        document.getElementById('profile-email').textContent = u.email || '';
+        document.getElementById('profile-role').textContent = u.role || 'user';
+        if (u.bio) document.getElementById('profile-bio').textContent = u.bio;
+        if (u.created_at) {
+          document.getElementById('stat-member-since').textContent =
+            new Date(u.created_at).toLocaleDateString();
+        }
+        if (u.last_login) {
+          document.getElementById('stat-last-login').textContent =
+            new Date(u.last_login).toLocaleDateString();
+        }
+        document.getElementById('stat-account-status').textContent =
+          u.is_verified ? 'Verified' : 'Active';
+
+        // Fill form fields
+        document.getElementById('full_name').value = u.full_name || '';
+        document.getElementById('email').value = u.email || '';
+        document.getElementById('phone').value = u.phone || '';
+        document.getElementById('job_title').value = u.job_title || '';
+        document.getElementById('department').value = u.department || '';
+        document.getElementById('bio').value = u.bio || '';
+        document.getElementById('preferred_currency').value = u.preferred_currency || 'USD';
+        if (u.country) document.getElementById('country').value = u.country;
+
+        document.getElementById('notify_email').checked = !!u.notify_email;
+        document.getElementById('notify_high_risk').checked = !!u.notify_high_risk;
+        document.getElementById('notify_critical_only').checked = !!u.notify_critical_only;
+
+        if (u.security_question) {
+          document.getElementById('security_question_select').value = u.security_question;
+        }
+      } catch (e) {
+        toast('Failed to load profile', 'error');
+      }
+    }
+
+    // ===== Load countries =====
+    async function loadCountries() {
+      try {
+        const r = await fetch('/api/countries');
+        const data = await r.json();
+        const sel = document.getElementById('country');
+        data.countries.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c.code;
+          o.textContent = `${c.flag} ${c.name}`;
+          sel.appendChild(o);
+        });
+      } catch (e) { /* ignore */ }
+    }
+
+    // ===== Form submissions =====
+    document.getElementById('general-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        full_name: document.getElementById('full_name').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        job_title: document.getElementById('job_title').value,
+        department: document.getElementById('department').value,
+        country: document.getElementById('country').value,
+        bio: document.getElementById('bio').value,
+      };
+      const r = await fetch('/auth/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await r.json();
+      if (r.ok) {
+        toast('Profile updated successfully');
+        loadProfile();
+      } else {
+        toast(data.error || 'Failed to update profile', 'error');
+      }
+    });
+
+    document.getElementById('password-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newPass = document.getElementById('new_password').value;
+      const confirm = document.getElementById('confirm_password').value;
+      if (newPass !== confirm) {
+        toast('Passwords do not match', 'error');
+        return;
+      }
+      const r = await fetch('/auth/api/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_password: document.getElementById('current_password').value,
+          new_password: newPass,
+        }),
+      });
+      const data = await r.json();
+      if (r.ok) {
+        toast('Password changed successfully');
+        e.target.reset();
+      } else {
+        toast(data.error || 'Failed to change password', 'error');
+      }
+    });
+
+    document.getElementById('security-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await fetch('/auth/api/security-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: document.getElementById('security_question_select').value,
+          answer: document.getElementById('security_answer').value,
+          current_password: document.getElementById('security_password').value,
+        }),
+      });
+      const data = await r.json();
+      if (r.ok) {
+        toast('Security question saved');
+        document.getElementById('security_answer').value = '';
+        document.getElementById('security_password').value = '';
+      } else {
+        toast(data.error || 'Failed to save', 'error');
+      }
+    });
+
+    document.getElementById('notifications-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        notify_email: document.getElementById('notify_email').checked,
+        notify_high_risk: document.getElementById('notify_high_risk').checked,
+        notify_critical_only: document.getElementById('notify_critical_only').checked,
+      };
+      const r = await fetch('/auth/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) toast('Notification preferences saved');
+      else toast('Failed to save', 'error');
+    });
+
+    document.getElementById('preferences-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await fetch('/auth/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preferred_currency: document.getElementById('preferred_currency').value,
+        }),
+      });
+      if (r.ok) toast('Preferences saved');
+      else toast('Failed to save', 'error');
+    });
+
+    // ===== Init =====
+    loadProfile();
+    loadCountries();
+  </script>
+</body>
+</html>

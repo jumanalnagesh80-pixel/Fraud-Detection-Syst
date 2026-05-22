@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transactions · Sentinel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/profile.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Transactions</div>
+        <div class="brand-tag">Full transaction history & filtering</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a href="/dashboard" class="btn btn-ghost">Dashboard</a>
+      <a href="/reports" class="btn btn-ghost">Reports</a>
+      <a href="/notifications" class="btn btn-ghost">Inbox</a>
+      <a href="/auth/profile" class="btn btn-ghost">Profile</a>
+      <button class="btn btn-primary" id="btn-export">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Filters -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">Filters</h3>
+          <p class="card-sub">Narrow down by risk, decision, country, amount, or text</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost" id="btn-clear">Clear</button>
+          <button class="btn btn-primary" id="btn-apply">Apply</button>
+        </div>
+      </div>
+      <div class="form-grid" style="grid-template-columns: repeat(5, 1fr); gap:12px;">
+        <div class="field">
+          <label>Search</label>
+          <input type="text" id="f-search" placeholder="Txn id or user id" />
+        </div>
+        <div class="field">
+          <label>Risk Level</label>
+          <select id="f-risk">
+            <option value="">All</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Decision</label>
+          <select id="f-decision">
+            <option value="">All</option>
+            <option value="approve">Approve</option>
+            <option value="review">Review</option>
+            <option value="decline">Decline</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Country</label>
+          <select id="f-country"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label>Min Amount (USD)</label>
+          <input type="number" id="f-min" min="0" placeholder="0" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats summary based on filtered set -->
+    <section class="report-grid">
+      <div class="report-card">
+        <div class="label">Filtered Transactions</div>
+        <div class="value" id="s-total">0</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Total Amount</div>
+        <div class="value" id="s-amount">$0</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Flagged (High/Critical)</div>
+        <div class="value" id="s-flagged">0</div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">All Transactions</h3>
+          <p class="card-sub" id="results-count">Showing 0 results</p>
+        </div>
+      </div>
+      <div class="table-wrap" style="max-height: 620px;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Txn ID</th>
+              <th>User</th>
+              <th>Amount</th>
+              <th>Country</th>
+              <th>Category</th>
+              <th>Device</th>
+              <th>Risk</th>
+              <th>Decision</th>
+              <th>Latency</th>
+            </tr>
+          </thead>
+          <tbody id="txn-table-body">
+            <tr class="empty"><td colspan="10">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    let allTxns = [];
+
+    function toast(msg, type='success') {
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      requestAnimationFrame(() => t.classList.add('show'));
+      setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2500);
+    }
+    function fmt$(v) { return '$' + Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+
+    async function loadCountries() {
+      try {
+        const r = await fetch('/api/countries');
+        const d = await r.json();
+        const sel = document.getElementById('f-country');
+        d.countries.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c.code;
+          o.textContent = `${c.flag} ${c.name}`;
+          sel.appendChild(o);
+        });
+      } catch (e) { /* ignore */ }
+    }
+
+    async function loadTransactions() {
+      try {
+        const r = await fetch('/api/transactions?limit=500');
+        const d = await r.json();
+        allTxns = d.transactions || [];
+        renderTable();
+      } catch (e) {
+        toast('Failed to load transactions', 'error');
+      }
+    }
+
+    function getFilters() {
+      return {
+        search: document.getElementById('f-search').value.trim().toLowerCase(),
+        risk: document.getElementById('f-risk').value,
+        decision: document.getElementById('f-decision').value,
+        country: document.getElementById('f-country').value,
+        minAmount: parseFloat(document.getElementById('f-min').value) || 0,
+      };
+    }
+
+    function applyFilters(items) {
+      const f = getFilters();
+      return items.filter(item => {
+        const t = item.transaction || {};
+        const r = item.result || {};
+        if (f.search) {
+          const id = (r.transaction_id || t.transaction_id || '').toLowerCase();
+          const uid = (t.user_id || '').toLowerCase();
+          if (!id.includes(f.search) && !uid.includes(f.search)) return false;
+        }
+        if (f.risk && r.risk_level !== f.risk) return false;
+        if (f.decision && r.decision !== f.decision) return false;
+        if (f.country && t.country !== f.country) return false;
+        if (Number(t.amount || 0) < f.minAmount) return false;
+        return true;
+      });
+    }
+
+    function renderTable() {
+      const filtered = applyFilters(allTxns);
+      const tbody = document.getElementById('txn-table-body');
+
+      // summary stats
+      const totalAmount = filtered.reduce((s, i) => s + Number((i.transaction || {}).amount || 0), 0);
+      const flagged = filtered.filter(i => ['high', 'critical'].includes((i.result || {}).risk_level)).length;
+      document.getElementById('s-total').textContent = filtered.length;
+      document.getElementById('s-amount').textContent = fmt$(totalAmount);
+      document.getElementById('s-flagged').textContent = flagged;
+      document.getElementById('results-count').textContent = `Showing ${filtered.length} of ${allTxns.length} results`;
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr class="empty"><td colspan="10">No matches. Try clearing filters or running a simulation from the dashboard.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.slice(0, 200).map(item => {
+        const t = item.transaction || {};
+        const r = item.result || {};
+        const id = r.transaction_id || t.transaction_id || '';
+        const time = new Date(item.recorded_at).toLocaleString();
+        const risk = r.risk_level || 'low';
+        const decision = r.decision || 'approve';
+        return `
+          <tr>
+            <td>${escapeHtml(time)}</td>
+            <td><span class="txn-id">${escapeHtml(id)}</span></td>
+            <td>${escapeHtml(t.user_id || '-')}</td>
+            <td>${fmt$(t.amount)}</td>
+            <td>${escapeHtml(t.country || '-')}</td>
+            <td>${escapeHtml(t.merchant_category || '-')}</td>
+            <td>${escapeHtml(t.device_type || '-')}</td>
+            <td><span class="badge badge-${risk}"><i></i>${risk}</span></td>
+            <td><span class="badge badge-${decision}">${decision}</span></td>
+            <td>${(item.latency_ms || 0).toFixed(1)}ms</td>
+          </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('btn-apply').addEventListener('click', renderTable);
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      ['f-search','f-risk','f-decision','f-country','f-min'].forEach(id => document.getElementById(id).value = '');
+      renderTable();
+    });
+
+    // live filter on Enter / change
+    document.getElementById('f-search').addEventListener('input', renderTable);
+    ['f-risk','f-decision','f-country','f-min'].forEach(id =>
+      document.getElementById(id).addEventListener('change', renderTable)
+    );
+
+    document.getElementById('btn-export').addEventListener('click', () => {
+      const filtered = applyFilters(allTxns);
+      const rows = [['time','txn_id','user_id','amount','country','category','device','risk','decision','latency_ms']];
+      filtered.forEach(item => {
+        const t = item.transaction || {};
+        const r = item.result || {};
+        rows.push([
+          item.recorded_at,
+          r.transaction_id || t.transaction_id,
+          t.user_id || '',
+          t.amount,
+          t.country || '',
+          t.merchant_category || '',
+          t.device_type || '',
+          r.risk_level || '',
+          r.decision || '',
+          (item.latency_ms || 0).toFixed(2),
+        ]);
+      });
+      const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `transactions_${Date.now()}.csv`; a.click();
+      URL.revokeObjectURL(url);
+      toast(`Exported ${filtered.length} transactions`);
+    });
+
+    loadCountries();
+    loadTransactions();
+    setInterval(loadTransactions, 5000);
+  </script>
+</body>
+</html>

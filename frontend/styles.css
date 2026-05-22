@@ -616,3 +616,66 @@ body {
 .dropdown-item-danger svg {
   color: #ef4444;
 }
+
+
+
+/* ============================================================
+   Navigation pills (top bar)
+   ============================================================ */
+.nav-pills {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid var(--border);
+}
+.nav-pill {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.nav-pill:hover { color: var(--text); background: rgba(148, 163, 184, 0.1); }
+.nav-pill-active {
+  background: var(--grad-primary);
+  color: white;
+  box-shadow: 0 6px 18px -8px rgba(99, 102, 241, 0.6);
+}
+
+/* Icon button with badge (notification bell) */
+.icon-btn {
+  position: relative;
+  width: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--red);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--bg-2);
+  transform: scale(0);
+  transition: transform 0.2s ease;
+}
+.notif-badge.visible { transform: scale(1); }
+
+/* unread alert highlight on notifications page */
+.alert-unread {
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  background: rgba(99, 102, 241, 0.06) !important;
+}

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications · Sentinel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/profile.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Notifications</div>
+        <div class="brand-tag" id="unread-tag">0 unread</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a href="/dashboard" class="btn btn-ghost">Dashboard</a>
+      <a href="/transactions" class="btn btn-ghost">Transactions</a>
+      <a href="/reports" class="btn btn-ghost">Reports</a>
+      <a href="/auth/profile" class="btn btn-ghost">Profile</a>
+      <button class="btn btn-primary" id="btn-mark-read">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Mark all read
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Filter pills -->
+    <div class="tabs">
+      <button class="tab tab-active" data-filter="all">All</button>
+      <button class="tab" data-filter="unread">Unread</button>
+      <button class="tab" data-filter="critical">Critical</button>
+      <button class="tab" data-filter="high">High</button>
+      <button class="tab" data-filter="fraud_alert">Fraud Alerts</button>
+    </div>
+
+    <!-- Notifications list -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">Inbox</h3>
+          <p class="card-sub" id="inbox-summary">Loading…</p>
+        </div>
+      </div>
+      <div id="notifications-list" class="alerts-list" style="max-height:none;">
+        <div class="empty-state">Loading notifications…</div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    let allNotifications = [];
+    let activeFilter = 'all';
+
+    function toast(msg, type='success') {
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      requestAnimationFrame(() => t.classList.add('show'));
+      setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2500);
+    }
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+
+    async function loadNotifications() {
+      const r = await fetch('/api/notifications');
+      const d = await r.json();
+      allNotifications = d.notifications || [];
+      document.getElementById('unread-tag').textContent = `${d.unread || 0} unread`;
+      render();
+    }
+
+    function render() {
+      let items = allNotifications.slice();
+      if (activeFilter === 'unread') items = items.filter(n => !n.read);
+      else if (activeFilter === 'critical') items = items.filter(n => n.level === 'critical');
+      else if (activeFilter === 'high') items = items.filter(n => n.level === 'high');
+      else if (activeFilter === 'fraud_alert') items = items.filter(n => n.type === 'fraud_alert');
+
+      document.getElementById('inbox-summary').textContent =
+        `${items.length} ${activeFilter === 'all' ? 'notifications' : activeFilter}`;
+
+      const list = document.getElementById('notifications-list');
+      if (!items.length) {
+        list.innerHTML = `<div class="empty-state">No notifications in this view. Run a simulation from the dashboard to generate fraud alerts.</div>`;
+        return;
+      }
+
+      list.innerHTML = items.map(n => {
+        const time = n.created_at ? new Date(n.created_at).toLocaleString() : 'just now';
+        const level = n.level || 'info';
+        const unreadCls = n.read ? '' : ' alert-unread';
+        return `
+          <div class="alert-item alert-${level}${unreadCls}">
+            <div class="stripe"></div>
+            <div class="alert-content">
+              <div class="alert-title">${escapeHtml(n.title || 'Notification')}${!n.read ? ' <span style="background:#3b82f6;color:white;font-size:10px;padding:2px 6px;border-radius:6px;margin-left:6px;">NEW</span>' : ''}</div>
+              <div class="alert-meta">${escapeHtml(time)} · ${escapeHtml(n.type || 'info')}</div>
+              <div class="alert-reason">${escapeHtml(n.message || '')}</div>
+            </div>
+            <div class="alert-prob">${level.toUpperCase()}</div>
+          </div>`;
+      }).join('');
+    }
+
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('tab-active'));
+        t.classList.add('tab-active');
+        activeFilter = t.dataset.filter;
+        render();
+      });
+    });
+
+    document.getElementById('btn-mark-read').addEventListener('click', async () => {
+      await fetch('/api/notifications/mark-read', { method: 'POST' });
+      toast('All notifications marked as read');
+      loadNotifications();
+    });
+
+    loadNotifications();
+    setInterval(loadNotifications, 4000);
+  </script>
+</body>
+</html>

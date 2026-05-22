@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports & Analytics · Sentinel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/profile.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Banker Reports</div>
+        <div class="brand-tag">Executive analytics & risk insights</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a href="/dashboard" class="btn btn-ghost">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+        Dashboard
+      </a>
+      <a href="/transactions" class="btn btn-ghost">Transactions</a>
+      <a href="/auth/profile" class="btn btn-ghost">Profile</a>
+      <button class="btn btn-primary" id="btn-export">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export CSV
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Executive KPIs -->
+    <section class="report-grid">
+      <div class="report-card">
+        <div class="label">Total Volume Processed</div>
+        <div class="value" id="m-volume">—</div>
+        <div class="delta up" id="m-volume-delta">vs synthetic baseline</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Fraud Blocked (USD)</div>
+        <div class="value" id="m-blocked">—</div>
+        <div class="delta up" id="m-blocked-delta">prevented losses</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Estimated Annual Savings</div>
+        <div class="value" id="m-savings">—</div>
+        <div class="delta up">projection from blocked fraud</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Fraud Rate</div>
+        <div class="value" id="m-rate">—</div>
+        <div class="delta" id="m-rate-delta">of all transactions</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Avg Decision Latency</div>
+        <div class="value" id="m-latency">—</div>
+        <div class="delta">milliseconds per call</div>
+      </div>
+      <div class="report-card">
+        <div class="label">Active Alerts</div>
+        <div class="value" id="m-alerts">—</div>
+        <div class="delta" id="m-alerts-breakdown">across risk levels</div>
+      </div>
+    </section>
+
+    <!-- Geo / Regional charts -->
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Top Fraud Countries</h3>
+            <p class="card-sub">Where flagged transactions originate</p>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-fraud-countries"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Regional Volume vs Fraud</h3>
+            <p class="card-sub">Stacked breakdown by geography</p>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-regional"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Fraud-by-hour & top rules -->
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Fraud by Hour of Day</h3>
+            <p class="card-sub">Identify peak-attack windows</p>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-hourly-fraud"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Top Triggered Rules</h3>
+            <p class="card-sub">Most-fired fraud rules</p>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-top-rules"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Country deep-dive table -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">Country Risk Breakdown</h3>
+          <p class="card-sub">Detailed fraud rate per country (sortable)</p>
+        </div>
+      </div>
+      <div class="table-wrap" style="max-height: 480px;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>Region</th>
+              <th>Total</th>
+              <th>Fraud</th>
+              <th>Fraud Rate</th>
+              <th>Country Risk</th>
+            </tr>
+          </thead>
+          <tbody id="country-table-body">
+            <tr class="empty"><td colspan="6">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Customer lookup -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">Customer Risk Profile Lookup</h3>
+          <p class="card-sub">Inspect a customer's behavior and risk score</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <input id="customer-id" placeholder="user_00001" style="background:rgba(10,15,31,0.7);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:9px 12px;font-size:13px;font-family:inherit;width:180px;" />
+          <button id="btn-lookup" class="btn btn-primary">Lookup</button>
+        </div>
+      </div>
+      <div id="customer-result" style="margin-top:8px;"></div>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    Chart.defaults.color = '#93a4c8';
+    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+    Chart.defaults.borderColor = 'rgba(148, 163, 184, 0.12)';
+
+    const COLORS = {
+      blue: '#3b82f6', red: '#ef4444', green: '#10b981',
+      orange: '#f97316', amber: '#f59e0b', violet: '#8b5cf6',
+      pink: '#ec4899', cyan: '#06b6d4',
+    };
+
+    const charts = {};
+
+    function fmt$(v) { return '$' + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
+    function pct(v) { return ((Number(v) || 0) * 100).toFixed(2) + '%'; }
+    function toast(msg, type='success') {
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      requestAnimationFrame(() => t.classList.add('show'));
+      setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    async function loadExecutive() {
+      const r = await fetch('/api/reports/executive');
+      const d = await r.json();
+      document.getElementById('m-volume').textContent = fmt$(d.financials.total_volume_usd);
+      document.getElementById('m-blocked').textContent = fmt$(d.financials.fraud_amount_blocked_usd);
+      document.getElementById('m-savings').textContent = fmt$(d.financials.estimated_annual_savings_usd);
+      document.getElementById('m-rate').textContent = pct(d.summary.fraud_rate);
+      document.getElementById('m-latency').textContent = (d.summary.avg_latency_ms || 0).toFixed(1) + ' ms';
+      document.getElementById('m-alerts').textContent = d.alerts.total;
+      const breakdown = d.alerts.by_level || {};
+      document.getElementById('m-alerts-breakdown').textContent =
+        Object.entries(breakdown).map(([k, v]) => `${k}: ${v}`).join(' · ') || 'no alerts yet';
+    }
+
+    async function loadFraudCountries() {
+      const r = await fetch('/api/geo/fraud-map');
+      const d = await r.json();
+      const list = (d.countries || []).filter(c => c.fraud > 0).slice(0, 10);
+      // populate table for ALL countries
+      const body = document.getElementById('country-table-body');
+      if (!d.countries.length) {
+        body.innerHTML = '<tr class="empty"><td colspan="6">No data yet — run a simulation.</td></tr>';
+      } else {
+        body.innerHTML = d.countries.map(c => `
+          <tr>
+            <td>${c.flag} ${c.name}</td>
+            <td>${c.region}</td>
+            <td>${c.total}</td>
+            <td>${c.fraud}</td>
+            <td><span class="badge badge-${c.fraud_rate > 0.3 ? 'critical' : c.fraud_rate > 0.1 ? 'high' : c.fraud_rate > 0.05 ? 'medium' : 'low'}">${pct(c.fraud_rate)}</span></td>
+            <td>${(c.country_risk * 100).toFixed(0)}%</td>
+          </tr>
+        `).join('');
+      }
+      // chart
+      const labels = list.map(c => `${c.flag} ${c.code}`);
+      const data = list.map(c => c.fraud);
+      if (charts.fraudCountries) charts.fraudCountries.destroy();
+      charts.fraudCountries = new Chart(document.getElementById('chart-fraud-countries'), {
+        type: 'bar',
+        data: { labels, datasets: [{
+          label: 'Fraud count', data,
+          backgroundColor: COLORS.red, borderRadius: 6, maxBarThickness: 22,
+        }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { color: 'rgba(148,163,184,0.08)' } }, y: { grid: { display: false } } } },
+      });
+    }
+
+    async function loadRegional() {
+      const r = await fetch('/api/geo/regional-stats');
+      const d = await r.json();
+      const labels = d.regions.map(r => r.region);
+      const total = d.regions.map(r => r.total - r.fraud);
+      const fraud = d.regions.map(r => r.fraud);
+      if (charts.regional) charts.regional.destroy();
+      charts.regional = new Chart(document.getElementById('chart-regional'), {
+        type: 'bar',
+        data: { labels, datasets: [
+          { label: 'Legitimate', data: total, backgroundColor: COLORS.blue, borderRadius: 6, maxBarThickness: 28, stack: 'volume' },
+          { label: 'Fraud',      data: fraud, backgroundColor: COLORS.red,  borderRadius: 6, maxBarThickness: 28, stack: 'volume' },
+        ]},
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { color: 'rgba(148,163,184,0.08)' } } } },
+      });
+    }
+
+    async function loadTopRisks() {
+      const r = await fetch('/api/reports/top-risks');
+      const d = await r.json();
+      // hourly fraud
+      const hourLabels = Array.from({length: 24}, (_, h) => `${String(h).padStart(2,'0')}h`);
+      const hourData = Array(24).fill(0);
+      (d.fraud_by_hour || []).forEach(([h, v]) => hourData[h] = v);
+      if (charts.hourly) charts.hourly.destroy();
+      charts.hourly = new Chart(document.getElementById('chart-hourly-fraud'), {
+        type: 'line',
+        data: { labels: hourLabels, datasets: [{
+          label: 'Fraud', data: hourData,
+          borderColor: COLORS.orange, backgroundColor: 'rgba(249,115,22,0.15)',
+          fill: true, tension: 0.35, pointRadius: 3, borderWidth: 2,
+        }]},
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(148,163,184,0.08)' } } } },
+      });
+
+      // top rules
+      const rules = (d.top_rules || []);
+      if (charts.rules) charts.rules.destroy();
+      charts.rules = new Chart(document.getElementById('chart-top-rules'), {
+        type: 'bar',
+        data: { labels: rules.map(r => r[0]), datasets: [{
+          label: 'Triggers', data: rules.map(r => r[1]),
+          backgroundColor: COLORS.violet, borderRadius: 6, maxBarThickness: 22,
+        }]},
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { color: 'rgba(148,163,184,0.08)' } }, y: { grid: { display: false } } } },
+      });
+    }
+
+    document.getElementById('btn-lookup').addEventListener('click', async () => {
+      const id = document.getElementById('customer-id').value.trim();
+      if (!id) { toast('Enter a user id', 'error'); return; }
+      const r = await fetch(`/api/reports/customer/${encodeURIComponent(id)}`);
+      const d = await r.json();
+      const out = document.getElementById('customer-result');
+      if (!d.found) {
+        out.innerHTML = `<div class="empty-state">${d.message || 'No data'}</div>`;
+        return;
+      }
+      const s = d.summary;
+      out.innerHTML = `
+        <div class="report-grid" style="margin-top:14px;">
+          <div class="report-card"><div class="label">Risk Level</div><div class="value">${s.risk_level.toUpperCase()}</div><div class="delta">score ${(s.calculated_risk_score*100).toFixed(0)}%</div></div>
+          <div class="report-card"><div class="label">Transactions</div><div class="value">${s.total_transactions}</div><div class="delta">${s.fraud_attempts} flagged</div></div>
+          <div class="report-card"><div class="label">Total Spend</div><div class="value">${fmt$(s.total_amount_usd)}</div><div class="delta">avg ${fmt$(s.average_transaction_usd)}</div></div>
+        </div>
+        <div style="margin-top:14px; display:flex; gap:18px; flex-wrap:wrap;">
+          <div><strong>Top countries:</strong> ${d.behavior.countries.map(c => `${c[0]} (${c[1]})`).join(', ') || '—'}</div>
+          <div><strong>Top devices:</strong> ${d.behavior.devices.map(c => `${c[0]} (${c[1]})`).join(', ') || '—'}</div>
+          <div><strong>Top categories:</strong> ${d.behavior.categories.map(c => `${c[0]} (${c[1]})`).join(', ') || '—'}</div>
+        </div>`;
+    });
+
+    document.getElementById('btn-export').addEventListener('click', async () => {
+      const r = await fetch('/api/geo/fraud-map');
+      const d = await r.json();
+      const rows = [['code','name','region','total','fraud','fraud_rate','country_risk']];
+      d.countries.forEach(c => rows.push([c.code, c.name, c.region, c.total, c.fraud, c.fraud_rate, c.country_risk]));
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `fraud_report_${Date.now()}.csv`; a.click();
+      URL.revokeObjectURL(url);
+      toast('Report exported');
+    });
+
+    function refreshAll() {
+      loadExecutive();
+      loadFraudCountries();
+      loadRegional();
+      loadTopRisks();
+    }
+    refreshAll();
+    setInterval(refreshAll, 5000);
+  </script>
+</body>
+</html>
