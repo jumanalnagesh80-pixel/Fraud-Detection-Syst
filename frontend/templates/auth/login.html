@@ -124,7 +124,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
   <script>
     // Password toggle
     document.getElementById('toggle-password').addEventListener('click', function() {
@@ -199,7 +199,14 @@
     }
 
     // ===== Face Login =====
-    const FACE_MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+    // Multiple CDN sources for resilience — the original face-api.js npm
+    // package doesn't include the weights folder, so we use vladmandic's
+    // fork (which does), with a github.io fallback.
+    const FACE_MODEL_SOURCES = [
+      'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model',
+      'https://cdn.jsdelivr.net/gh/vladmandic/face-api@master/model',
+      'https://justadudewhohacks.github.io/face-api.js/weights',
+    ];
     let fl_modelsLoaded = false;
     let fl_stream = null;
     let fl_loop = null;
@@ -230,15 +237,38 @@
     }
 
     async function loadFaceModels() {
-      if (fl_modelsLoaded) return;
+      if (fl_modelsLoaded) return true;
       const hint = document.getElementById('face-login-hint');
-      hint.textContent = 'Loading face model…';
-      await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_URL),
-        faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL),
-      ]);
-      fl_modelsLoaded = true;
+
+      if (typeof faceapi === 'undefined') {
+        hint.textContent = 'Face library not loaded — check internet';
+        return false;
+      }
+
+      let lastErr = null;
+      for (const url of FACE_MODEL_SOURCES) {
+        try {
+          hint.textContent = `Loading face model from ${new URL(url).hostname}…`;
+          await Promise.race([
+            Promise.all([
+              faceapi.nets.tinyFaceDetector.loadFromUri(url),
+              faceapi.nets.faceLandmark68Net.loadFromUri(url),
+              faceapi.nets.faceRecognitionNet.loadFromUri(url),
+            ]),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('timeout')), 15000)
+            ),
+          ]);
+          fl_modelsLoaded = true;
+          return true;
+        } catch (err) {
+          console.warn(`Face model load failed from ${url}:`, err.message);
+          lastErr = err;
+        }
+      }
+
+      hint.textContent = `Failed to load face model: ${lastErr ? lastErr.message : 'unknown error'}`;
+      return false;
     }
 
     async function startFaceLogin() {
@@ -251,8 +281,15 @@
       startBtn.disabled = true;
       startBtn.textContent = 'Loading…';
 
+      const ok = await loadFaceModels();
+      if (!ok) {
+        showAlert('Could not load face detection model. Check your internet connection.', 'error');
+        startBtn.disabled = false;
+        startBtn.textContent = 'Retry';
+        return;
+      }
+
       try {
-        await loadFaceModels();
         fl_stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 480, height: 360, facingMode: 'user' },
         });
@@ -262,9 +299,9 @@
         startBtn.textContent = 'Looking for face…';
       } catch (err) {
         console.error(err);
-        showAlert('Camera access denied or model failed to load', 'error');
+        showAlert('Camera access denied. Allow camera permission and try again.', 'error');
         startBtn.disabled = false;
-        startBtn.textContent = 'Start Camera';
+        startBtn.textContent = 'Retry';
       }
     }
 
@@ -279,7 +316,7 @@
 
       try {
         const detection = await faceapi
-          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
 

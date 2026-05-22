@@ -679,3 +679,108 @@ body {
   border-color: rgba(99, 102, 241, 0.4) !important;
   background: rgba(99, 102, 241, 0.06) !important;
 }
+
+
+
+/* ============================================================
+   Bank Fraud Scenarios — one-click test panel
+   ============================================================ */
+.bank-scenarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.scenario-card {
+  position: relative;
+  padding: 16px 14px;
+  border-radius: 14px;
+  background: rgba(10, 15, 31, 0.55);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.scenario-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  background: rgba(20, 27, 45, 0.85);
+}
+.scenario-card.scenario-active {
+  border-color: var(--indigo);
+  background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.10));
+  box-shadow: 0 6px 18px -8px rgba(99, 102, 241, 0.55);
+}
+.scenario-icon {
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.scenario-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.scenario-sub {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.scenario-result {
+  margin-top: 16px;
+  display: none;
+}
+.scenario-result.visible { display: block; animation: fadeIn 0.3s ease; }
+
+.scenario-result-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(10, 15, 31, 0.5);
+  border: 1px solid var(--border-strong);
+  border-left-width: 4px;
+}
+.scenario-result-low      { border-left-color: var(--green); }
+.scenario-result-medium   { border-left-color: var(--amber); }
+.scenario-result-high     { border-left-color: var(--orange); }
+.scenario-result-critical { border-left-color: var(--red); }
+
+.scenario-gauge {
+  width: 92px; height: 92px;
+  position: relative;
+  flex-shrink: 0;
+}
+.scenario-gauge-text {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+}
+.scenario-result-meta { display: flex; flex-direction: column; min-width: 0; }
+.scenario-result-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+.scenario-result-subtitle { font-size: 12.5px; color: var(--text-dim); margin-bottom: 6px; }
+.scenario-rules {
+  list-style: none;
+  margin-top: 10px;
+  padding: 0;
+  display: flex; flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+.scenario-rules li {
+  padding: 6px 10px;
+  background: rgba(249, 115, 22, 0.08);
+  border-left: 3px solid var(--orange);
+  border-radius: 6px;
+}
+
+@media (max-width: 700px) {
+  .scenario-result-card { grid-template-columns: 1fr; }
+  .scenario-gauge { margin: 0 auto; }
+}

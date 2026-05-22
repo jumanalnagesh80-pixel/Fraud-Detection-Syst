@@ -279,6 +279,59 @@
       </div>
     </section>
 
+    <!-- Bank Fraud Scenarios -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">🏦 Bank Fraud Scenarios</h3>
+          <p class="card-sub">One-click tests for common banking fraud patterns — instantly see how the model reacts</p>
+        </div>
+      </div>
+      <div class="bank-scenarios">
+        <button class="scenario-card" data-scenario="card-cloning">
+          <div class="scenario-icon">💳</div>
+          <div class="scenario-title">Card Cloning</div>
+          <div class="scenario-sub">Same card, foreign country, no card-present</div>
+        </button>
+        <button class="scenario-card" data-scenario="atm-skim">
+          <div class="scenario-icon">🏧</div>
+          <div class="scenario-title">ATM Skimming</div>
+          <div class="scenario-sub">Multiple ATM withdrawals, late night</div>
+        </button>
+        <button class="scenario-card" data-scenario="account-takeover">
+          <div class="scenario-icon">👤</div>
+          <div class="scenario-title">Account Takeover</div>
+          <div class="scenario-sub">High-value transfer, new device, odd hour</div>
+        </button>
+        <button class="scenario-card" data-scenario="wire-fraud">
+          <div class="scenario-icon">📡</div>
+          <div class="scenario-title">Wire Fraud</div>
+          <div class="scenario-sub">Large wire to high-risk country</div>
+        </button>
+        <button class="scenario-card" data-scenario="cnp-online">
+          <div class="scenario-icon">🛒</div>
+          <div class="scenario-title">Card-Not-Present</div>
+          <div class="scenario-sub">Online retail, card not present</div>
+        </button>
+        <button class="scenario-card" data-scenario="crypto-exchange">
+          <div class="scenario-icon">₿</div>
+          <div class="scenario-title">Crypto Exchange</div>
+          <div class="scenario-sub">High-value crypto, anonymized device</div>
+        </button>
+        <button class="scenario-card" data-scenario="legit-purchase">
+          <div class="scenario-icon">✅</div>
+          <div class="scenario-title">Normal Purchase</div>
+          <div class="scenario-sub">Grocery, home country, daytime</div>
+        </button>
+        <button class="scenario-card" data-scenario="legit-restaurant">
+          <div class="scenario-icon">🍽️</div>
+          <div class="scenario-title">Restaurant</div>
+          <div class="scenario-sub">Card present, dinner hour, low amount</div>
+        </button>
+      </div>
+      <div id="scenario-result" class="scenario-result"></div>
+    </section>
+
     <!-- Manual scoring panel -->
     <section class="card">
       <div class="card-head">

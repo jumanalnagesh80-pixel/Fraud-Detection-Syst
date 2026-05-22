@@ -278,7 +278,7 @@
 
   <div id="toast-container" class="toast-container"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
   <script>
     // ===== Tabs =====
     document.querySelectorAll('.tab').forEach(t => {
@@ -470,8 +470,16 @@
     loadCountries();
 
     // ===== Face Authentication =====
-    // Models hosted on jsdelivr (no extra hosting needed)
-    const FACE_MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+    // Try multiple CDN sources so model loading is resilient.
+    // @vladmandic/face-api ships the weights inside the npm package, so jsdelivr
+    // can serve them directly. The original face-api.js npm package does NOT
+    // include the weights folder — we keep the official github.io URL as a
+    // last-resort fallback (it's served from the same project's gh-pages branch).
+    const FACE_MODEL_SOURCES = [
+      'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model',
+      'https://cdn.jsdelivr.net/gh/vladmandic/face-api@master/model',
+      'https://justadudewhohacks.github.io/face-api.js/weights',
+    ];
     let faceModelsLoaded = false;
     let faceVideoStream = null;
     let faceLoopHandle = null;
@@ -480,20 +488,39 @@
     async function loadFaceModels() {
       if (faceModelsLoaded) return;
       const hint = document.getElementById('face-hint');
-      try {
-        hint.textContent = 'Loading face detection model…';
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
-          faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_URL),
-          faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL),
-        ]);
-        faceModelsLoaded = true;
-        hint.textContent = 'Position your face in the frame';
-      } catch (err) {
-        console.error(err);
-        hint.textContent = 'Failed to load face model. Check your internet connection.';
-        toast('Failed to load face detection model', 'error');
+
+      if (typeof faceapi === 'undefined') {
+        hint.textContent = 'Face library failed to load — check your internet connection';
+        toast('face-api.js library not loaded. Check internet.', 'error');
+        return;
       }
+
+      let lastErr = null;
+      for (const url of FACE_MODEL_SOURCES) {
+        try {
+          hint.textContent = `Loading face model from ${new URL(url).hostname}…`;
+          // 15 second timeout per source so we don't hang forever
+          await Promise.race([
+            Promise.all([
+              faceapi.nets.tinyFaceDetector.loadFromUri(url),
+              faceapi.nets.faceLandmark68Net.loadFromUri(url),
+              faceapi.nets.faceRecognitionNet.loadFromUri(url),
+            ]),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('timeout (15s)')), 15000)
+            ),
+          ]);
+          faceModelsLoaded = true;
+          hint.textContent = 'Position your face in the frame';
+          return;
+        } catch (err) {
+          console.warn(`Face model load failed from ${url}:`, err.message);
+          lastErr = err;
+        }
+      }
+
+      hint.textContent = `Failed to load face model: ${lastErr ? lastErr.message : 'unknown error'}`;
+      toast('Could not download face model from any CDN. Check your connection.', 'error');
     }
 
     function updateFaceStatus(enabled, enrolledAt) {
@@ -567,7 +594,7 @@
 
       try {
         const detection = await faceapi
-          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
 

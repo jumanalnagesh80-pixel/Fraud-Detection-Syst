@@ -640,6 +640,132 @@ document.addEventListener('DOMContentLoaded', () => {
   const notifBtn = document.getElementById('btn-notifications');
   if (notifBtn) notifBtn.addEventListener('click', () => { window.location.href = '/notifications'; });
 
+  // Bank fraud scenarios
+  initBankScenarios();
+
   // Welcome toast on first load
   setTimeout(() => toast('Sentinel is live · monitoring transactions', 'info'), 600);
 });
+
+// ============================================================
+// BANK FRAUD SCENARIOS
+// ============================================================
+const SCENARIOS = {
+  'card-cloning': {
+    label: '💳 Card Cloning',
+    txn: { amount: 1850, country: 'NG', merchant_category: 'electronics',
+           hour: 4, device_type: 'pos_terminal', is_card_present: false },
+  },
+  'atm-skim': {
+    label: '🏧 ATM Skimming',
+    txn: { amount: 800, country: 'BR', merchant_category: 'atm_withdrawal',
+           hour: 2, device_type: 'atm', is_card_present: true },
+  },
+  'account-takeover': {
+    label: '👤 Account Takeover',
+    txn: { amount: 4200, country: 'RU', merchant_category: 'wire_transfer',
+           hour: 3, device_type: 'web_chrome', is_card_present: false },
+  },
+  'wire-fraud': {
+    label: '📡 Wire Fraud',
+    txn: { amount: 9500, country: 'IR', merchant_category: 'wire_transfer',
+           hour: 23, device_type: 'web_firefox', is_card_present: false },
+  },
+  'cnp-online': {
+    label: '🛒 Card-Not-Present',
+    txn: { amount: 320, country: 'CN', merchant_category: 'online_retail',
+           hour: 22, device_type: 'web_chrome', is_card_present: false },
+  },
+  'crypto-exchange': {
+    label: '₿ Crypto Exchange',
+    txn: { amount: 6500, country: 'VE', merchant_category: 'crypto',
+           hour: 1, device_type: 'web_firefox', is_card_present: false },
+  },
+  'legit-purchase': {
+    label: '✅ Normal Purchase',
+    txn: { amount: 47, country: 'US', merchant_category: 'grocery',
+           hour: 14, device_type: 'pos_terminal', is_card_present: true },
+  },
+  'legit-restaurant': {
+    label: '🍽️ Restaurant',
+    txn: { amount: 85, country: 'US', merchant_category: 'restaurant',
+           hour: 19, device_type: 'pos_terminal', is_card_present: true },
+  },
+};
+
+function initBankScenarios() {
+  document.querySelectorAll('.scenario-card[data-scenario]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const key = btn.dataset.scenario;
+      const scenario = SCENARIOS[key];
+      if (!scenario) return;
+
+      // visual feedback on the button
+      document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('scenario-active'));
+      btn.classList.add('scenario-active');
+
+      const txn = {
+        ...scenario.txn,
+        transaction_id: `bank_${key}_${Date.now()}`,
+      };
+
+      try {
+        const r = await fetch(API.predict, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(txn),
+        });
+        const data = await r.json();
+        renderScenarioResult(scenario.label, txn, data);
+        refresh();
+        loadGeoData();
+      } catch (e) {
+        toast('Failed to score scenario', 'error');
+      }
+    });
+  });
+}
+
+function renderScenarioResult(label, txn, payload) {
+  const r = payload.result || payload;
+  const prob = (r.fraud_probability || 0) * 100;
+  const level = r.risk_level || 'low';
+  const decision = r.decision || 'approve';
+  const colorByLevel = {
+    low: COLORS.green, medium: COLORS.amber,
+    high: COLORS.orange, critical: COLORS.red,
+  };
+  const color = colorByLevel[level] || COLORS.green;
+
+  const circumference = 2 * Math.PI * 38;
+  const offset = circumference * (1 - prob / 100);
+
+  const rules = (r.triggered_rules || []).map(rl =>
+    `<li><strong>${escapeHtml(rl.name)}</strong> · ${escapeHtml(rl.reason)}</li>`
+  ).join('') || '<li style="color:var(--text-mute);">No rules triggered</li>';
+
+  const out = document.getElementById('scenario-result');
+  out.innerHTML = `
+    <div class="scenario-result-card scenario-result-${level}">
+      <div class="scenario-gauge">
+        <svg width="92" height="92">
+          <circle cx="46" cy="46" r="38" stroke="rgba(148,163,184,0.15)" stroke-width="8" fill="none"/>
+          <circle cx="46" cy="46" r="38" stroke="${color}" stroke-width="8" fill="none"
+                  stroke-linecap="round"
+                  stroke-dasharray="${circumference}"
+                  stroke-dashoffset="${offset}"
+                  transform="rotate(-90 46 46)"/>
+        </svg>
+        <div class="scenario-gauge-text" style="color:${color}">${prob.toFixed(0)}%</div>
+      </div>
+      <div class="scenario-result-meta">
+        <div class="scenario-result-title">${escapeHtml(label)}</div>
+        <div class="scenario-result-subtitle">$${Number(txn.amount).toLocaleString()} · ${escapeHtml(txn.country)} · ${escapeHtml(txn.merchant_category)}</div>
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          ${riskBadge(level)} ${decisionBadge(decision)}
+        </div>
+        <ul class="scenario-rules">${rules}</ul>
+      </div>
+    </div>`;
+  out.classList.add('visible');
+}
