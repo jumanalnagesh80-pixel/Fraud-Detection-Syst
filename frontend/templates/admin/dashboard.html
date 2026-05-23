@@ -9,6 +9,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/profile.css" />
+  <style>
+    .admin-tabs { flex-wrap: wrap; }
+    .live-pill { display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      background: rgba(16,185,129,0.15); color: #6ee7b7;
+      border: 1px solid rgba(16,185,129,0.4); }
+    .live-pill .pulse { width: 7px; height: 7px; border-radius: 50%;
+      background: #10b981; animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1) } 50% { opacity:0.4; transform:scale(1.4) } }
+    .filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto;
+      gap: 10px; margin-bottom: 14px; align-items: end; }
+    .mini-card { padding: 14px 16px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 12px; }
+    .mini-card .label { font-size: 11px; color: var(--text-mute);
+      text-transform: uppercase; letter-spacing: 1px; }
+    .mini-card .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .mini-card .delta { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+    .stream-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .stream-controls .field { min-width: 120px; }
+    .stream-running-card { padding: 14px;
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 10px; margin-top: 12px; }
+  </style>
 </head>
 <body>
   <div class="bg-orb orb-1"></div>
@@ -24,11 +48,12 @@
       </div>
       <div>
         <div class="brand-name">Admin Panel</div>
-        <div class="brand-tag">User & access management</div>
+        <div class="brand-tag">Manage everything from one place</div>
       </div>
     </div>
     <div class="topbar-actions">
       <a href="/dashboard" class="btn btn-ghost">Dashboard</a>
+      <a href="/banking" class="btn btn-ghost">Banking</a>
       <a href="/transactions" class="btn btn-ghost">Transactions</a>
       <a href="/reports" class="btn btn-ghost">Reports</a>
       <a href="/auth/profile" class="btn btn-ghost">Profile</a>
@@ -45,9 +70,9 @@
         <div class="delta" id="stat-recent-reg">— new in 30 days</div>
       </div>
       <div class="report-card">
-        <div class="label">Active Users</div>
-        <div class="value" id="stat-active-users">—</div>
-        <div class="delta" id="stat-verified">— verified</div>
+        <div class="label">Active Cards</div>
+        <div class="value" id="stat-cards">—</div>
+        <div class="delta" id="stat-cards-blocked">— blocked · — frozen</div>
       </div>
       <div class="report-card">
         <div class="label">Total Transactions</div>
@@ -55,20 +80,25 @@
         <div class="delta" id="stat-fraud-rate">fraud rate —</div>
       </div>
       <div class="report-card">
-        <div class="label">Pending Reviews</div>
-        <div class="value" id="stat-pending">—</div>
-        <div class="delta" id="stat-fraud-detected">— fraud detected</div>
+        <div class="label">Total Balance</div>
+        <div class="value" id="stat-balance">—</div>
+        <div class="delta" id="stat-pending">— pending reviews</div>
       </div>
     </section>
 
     <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab tab-active" data-tab="users">Users</button>
-      <button class="tab" data-tab="roles">Roles</button>
-      <button class="tab" data-tab="audit">Audit Log</button>
+    <div class="tabs admin-tabs">
+      <button class="tab tab-active" data-tab="users">👥 Users</button>
+      <button class="tab" data-tab="banking">💳 Banking</button>
+      <button class="tab" data-tab="transactions">💸 Transactions</button>
+      <button class="tab" data-tab="fraud">🚨 Fraud Alerts</button>
+      <button class="tab" data-tab="model">🤖 Model</button>
+      <button class="tab" data-tab="streams">📡 Live Streams</button>
+      <button class="tab" data-tab="roles">🔑 Roles</button>
+      <button class="tab" data-tab="audit">📜 Audit</button>
     </div>
 
-    <!-- Users -->
+    <!-- ========== USERS ========== -->
     <section class="tab-panel tab-panel-active" id="panel-users">
       <div class="card">
         <div class="card-head">
@@ -77,8 +107,7 @@
             <p class="card-sub">Create, edit, deactivate, and reset passwords</p>
           </div>
         </div>
-
-        <div class="form-grid" style="grid-template-columns: 2fr 1fr 1fr auto; gap:10px; margin-top:0;">
+        <div class="filter-row">
           <div class="field">
             <label>Search</label>
             <input type="text" id="u-search" placeholder="Username, email, or full name" />
@@ -100,35 +129,186 @@
               <option value="inactive">Inactive</option>
             </select>
           </div>
-          <div class="field field-action" style="align-self:end;">
-            <button class="btn btn-primary" id="u-apply">Apply</button>
-          </div>
+          <button class="btn btn-primary" id="u-apply">Apply</button>
         </div>
-
-        <div class="table-wrap" style="max-height:540px; margin-top:14px;">
+        <div class="table-wrap" style="max-height:520px;">
           <table class="table">
             <thead>
-              <tr>
-                <th>User</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Last Login</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
+              <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th>
+                <th>Last Login</th><th>Created</th><th>Actions</th></tr>
             </thead>
-            <tbody id="users-body">
-              <tr class="empty"><td colspan="7">Loading…</td></tr>
-            </tbody>
+            <tbody id="users-body"><tr class="empty"><td colspan="7">Loading…</td></tr></tbody>
           </table>
         </div>
-
         <div id="pager" style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;"></div>
       </div>
     </section>
 
-    <!-- Roles -->
+    <!-- ========== BANKING ========== -->
+    <section class="tab-panel" id="panel-banking">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Bank Accounts</h3>
+            <p class="card-sub">All accounts across users — freeze any account on suspicion</p>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="field">
+            <label>Status</label>
+            <select id="ba-status">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="frozen">Frozen</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="ba-apply">Apply</button>
+        </div>
+        <div class="table-wrap" style="max-height:380px;">
+          <table class="table">
+            <thead><tr><th>Owner</th><th>Account #</th><th>Type</th><th>Currency</th>
+              <th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="ba-body"><tr class="empty"><td colspan="7">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Cards</h3>
+            <p class="card-sub">Block, freeze, or unblock cards system-wide</p>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="field">
+            <label>Status</label>
+            <select id="cd-status">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="frozen">Frozen</option>
+              <option value="blocked">Blocked</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="cd-apply">Apply</button>
+        </div>
+        <div class="table-wrap" style="max-height:380px;">
+          <table class="table">
+            <thead><tr><th>Owner</th><th>Card</th><th>Brand</th><th>Type</th>
+              <th>Daily</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="cd-body"><tr class="empty"><td colspan="7">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TRANSACTIONS ========== -->
+    <section class="tab-panel" id="panel-transactions">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">All Transactions</h3>
+            <p class="card-sub">Live feed of every transaction across the platform</p>
+          </div>
+          <span class="live-pill" id="txn-live"><span class="pulse"></span> Live</span>
+        </div>
+        <div class="filter-row">
+          <div class="field">
+            <label>Risk</label>
+            <select id="tx-risk">
+              <option value="">All</option><option value="low">Low</option>
+              <option value="medium">Medium</option><option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Decision</label>
+            <select id="tx-decision">
+              <option value="">All</option><option value="approved">Approved</option>
+              <option value="held_for_review">Held for review</option>
+              <option value="declined">Declined</option>
+            </select>
+          </div>
+          <div class="field">
+            <label><input type="checkbox" id="tx-only-fraud" /> Fraud only</label>
+          </div>
+          <button class="btn btn-primary" id="tx-apply">Apply</button>
+        </div>
+        <div class="table-wrap" style="max-height:560px;">
+          <table class="table">
+            <thead><tr><th>Time</th><th>User</th><th>Merchant</th><th>Amount</th>
+              <th>Country</th><th>Risk</th><th>Decision</th><th>Actions</th></tr></thead>
+            <tbody id="tx-body"><tr class="empty"><td colspan="8">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== FRAUD ALERTS ========== -->
+    <section class="tab-panel" id="panel-fraud">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Fraud Alerts</h3>
+            <p class="card-sub">High and critical-risk transactions that need review</p>
+          </div>
+        </div>
+        <div class="table-wrap" style="max-height:580px;">
+          <table class="table">
+            <thead><tr><th>Time</th><th>User</th><th>Amount</th><th>Country</th>
+              <th>Merchant</th><th>Risk</th><th>Probability</th><th>Decision</th><th>Actions</th></tr></thead>
+            <tbody id="fr-body"><tr class="empty"><td colspan="9">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== MODEL ========== -->
+    <section class="tab-panel" id="panel-model">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Fraud Detection Model</h3>
+            <p class="card-sub">View metrics and retrain on fresh synthetic data</p>
+          </div>
+        </div>
+        <div id="model-info"><div class="empty-state">Loading model info…</div></div>
+        <div style="margin-top:18px; display:flex; flex-wrap:wrap; gap:12px; align-items:end;">
+          <div class="field"><label>Samples</label>
+            <input type="number" id="m-samples" value="8000" min="1000" max="50000" />
+          </div>
+          <div class="field"><label>Fraud rate</label>
+            <input type="number" id="m-fraud" value="0.05" min="0" max="0.5" step="0.01" />
+          </div>
+          <button class="btn btn-primary" id="m-retrain">Retrain Model</button>
+        </div>
+        <div id="m-status" style="margin-top:14px;"></div>
+      </div>
+    </section>
+
+    <!-- ========== LIVE STREAMS ========== -->
+    <section class="tab-panel" id="panel-streams">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Live Transaction Streams</h3>
+            <p class="card-sub">Per-user simulated traffic — controls every running stream</p>
+          </div>
+          <button class="btn btn-ghost" id="st-stop-all">Stop all</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>User</th><th>Rate</th><th>Fraud Rate</th>
+              <th>Transactions Sent</th><th>Started</th></tr></thead>
+            <tbody id="st-body"><tr class="empty"><td colspan="5">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== ROLES ========== -->
     <section class="tab-panel" id="panel-roles">
       <div class="card">
         <h3 class="card-title">Roles & Permissions</h3>
@@ -137,7 +317,7 @@
       </div>
     </section>
 
-    <!-- Audit -->
+    <!-- ========== AUDIT ========== -->
     <section class="tab-panel" id="panel-audit">
       <div class="card">
         <div class="card-head">
@@ -148,19 +328,9 @@
         </div>
         <div class="table-wrap" style="max-height:540px;">
           <table class="table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Resource</th>
-                <th>Status</th>
-                <th>IP</th>
-              </tr>
-            </thead>
-            <tbody id="audit-body">
-              <tr class="empty"><td colspan="6">Loading…</td></tr>
-            </tbody>
+            <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Resource</th>
+              <th>Status</th><th>IP</th></tr></thead>
+            <tbody id="audit-body"><tr class="empty"><td colspan="6">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -176,42 +346,18 @@
       </div>
       <form id="edit-form" class="form-grid">
         <input type="hidden" id="e-id" />
-        <div class="field">
-          <label>Full Name</label>
-          <input type="text" id="e-full_name" />
+        <div class="field"><label>Full Name</label><input type="text" id="e-full_name" /></div>
+        <div class="field"><label>Email</label><input type="email" id="e-email" /></div>
+        <div class="field"><label>Role</label><select id="e-role_id"></select></div>
+        <div class="field"><label>Department</label><input type="text" id="e-department" /></div>
+        <div class="field field-full"><label>Phone</label><input type="text" id="e-phone" /></div>
+        <div class="field"><label>Active</label>
+          <select id="e-is_active"><option value="true">Yes</option><option value="false">No</option></select>
         </div>
-        <div class="field">
-          <label>Email</label>
-          <input type="email" id="e-email" />
+        <div class="field"><label>Verified</label>
+          <select id="e-is_verified"><option value="true">Yes</option><option value="false">No</option></select>
         </div>
-        <div class="field">
-          <label>Role</label>
-          <select id="e-role_id"></select>
-        </div>
-        <div class="field">
-          <label>Department</label>
-          <input type="text" id="e-department" />
-        </div>
-        <div class="field field-full">
-          <label>Phone</label>
-          <input type="text" id="e-phone" />
-        </div>
-        <div class="field">
-          <label>Active</label>
-          <select id="e-is_active">
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Verified</label>
-          <select id="e-is_verified">
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </div>
-        <div class="field field-full">
-          <label>New Password (leave blank to keep current)</label>
+        <div class="field field-full"><label>New Password (leave blank to keep)</label>
           <input type="password" id="e-password" minlength="8" placeholder="At least 8 characters" />
         </div>
         <div class="field field-action">
@@ -225,273 +371,453 @@
   <div id="toast-container" class="toast-container"></div>
 
   <script>
-    // ---------- helpers ----------
-    function toast(msg, type = 'success') {
-      const c = document.getElementById('toast-container');
-      const t = document.createElement('div');
-      t.className = `toast toast-${type}`;
-      t.textContent = msg;
-      c.appendChild(t);
+    // ------------- helpers -------------
+    function $(id) { return document.getElementById(id); }
+    function toast(msg, type='success') {
+      const c = $('toast-container'); const t = document.createElement('div');
+      t.className = `toast toast-${type}`; t.textContent = msg; c.appendChild(t);
       requestAnimationFrame(() => t.classList.add('show'));
       setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
     }
     function escapeHtml(s) {
-      return String(s ?? '').replace(/[&<>"']/g, ch => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+      return String(s ?? '').replace(/[&<>"']/g, ch =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     }
     function fmtDate(s) { return s ? new Date(s).toLocaleString() : '—'; }
+    function fmt$(v, ccy='USD') {
+      try { return new Intl.NumberFormat(undefined, {style:'currency', currency:ccy}).format(Number(v||0)); }
+      catch { return '$' + Number(v||0).toFixed(2); }
+    }
 
-    // ---------- Tabs ----------
+    // ------------- Tabs -------------
     document.querySelectorAll('.tab').forEach(t => {
       t.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(x => x.classList.remove('tab-active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('tab-panel-active'));
         t.classList.add('tab-active');
-        document.getElementById('panel-' + t.dataset.tab).classList.add('tab-panel-active');
-        if (t.dataset.tab === 'roles') loadRoles();
-        if (t.dataset.tab === 'audit') loadAudit();
+        $('panel-' + t.dataset.tab).classList.add('tab-panel-active');
+        const tab = t.dataset.tab;
+        if (tab === 'banking')      { loadAccounts(); loadCards(); }
+        else if (tab === 'transactions') loadTransactions();
+        else if (tab === 'fraud')        loadFraudAlerts();
+        else if (tab === 'model')        loadModel();
+        else if (tab === 'streams')      loadStreams();
+        else if (tab === 'roles')        loadRoles();
+        else if (tab === 'audit')        loadAudit();
       });
     });
 
-    // ---------- Stats ----------
+    // ------------- Stats -------------
     async function loadStats() {
       try {
-        const r = await fetch('/admin/api/stats');
-        if (!r.ok) throw new Error('stats fetch failed');
+        const r = await fetch('/admin/api/stats'); if (!r.ok) return;
         const d = await r.json();
-        document.getElementById('stat-total-users').textContent = d.users.total;
-        document.getElementById('stat-active-users').textContent = d.users.active;
-        document.getElementById('stat-recent-reg').textContent = `${d.users.recent_registrations} new in 30 days`;
-        document.getElementById('stat-verified').textContent = `${d.users.verified} verified`;
-        document.getElementById('stat-total-txns').textContent = d.transactions.total;
-        document.getElementById('stat-fraud-rate').textContent = `fraud rate ${(d.transactions.fraud_rate * 100).toFixed(2)}%`;
-        document.getElementById('stat-pending').textContent = d.transactions.pending_reviews;
-        document.getElementById('stat-fraud-detected').textContent = `${d.transactions.fraud_detected} fraud detected`;
-      } catch (e) { /* keep dashes */ }
+        $('stat-total-users').textContent = d.users.total;
+        $('stat-recent-reg').textContent = `${d.users.recent_registrations} new in 30 days`;
+        $('stat-cards').textContent = d.banking.total_cards;
+        $('stat-cards-blocked').textContent =
+          `${d.banking.blocked_cards} blocked · ${d.banking.frozen_cards} frozen`;
+        $('stat-total-txns').textContent = d.transactions.total;
+        $('stat-fraud-rate').textContent =
+          `fraud rate ${(d.transactions.fraud_rate * 100).toFixed(2)}%`;
+        $('stat-balance').textContent = fmt$(d.banking.total_balance);
+        $('stat-pending').textContent = `${d.transactions.pending_reviews} pending reviews`;
+      } catch {}
     }
 
-    // ---------- Users ----------
-    let _roles = [];
-    let _page = 1;
-
+    // ------------- USERS -------------
+    let _roles = [], _userPage = 1;
     async function loadRolesForSelect() {
       if (_roles.length) return _roles;
       const r = await fetch('/admin/api/roles');
-      const d = await r.json();
-      _roles = d.roles || [];
-      return _roles;
+      _roles = (await r.json()).roles || []; return _roles;
     }
-
     async function loadUsers(page = 1) {
-      _page = page;
-      const search = document.getElementById('u-search').value.trim();
-      const role = document.getElementById('u-role').value;
-      const status = document.getElementById('u-status').value;
+      _userPage = page;
       const params = new URLSearchParams({ page, per_page: 20 });
-      if (search) params.set('search', search);
+      const s = $('u-search').value.trim(), role = $('u-role').value, st = $('u-status').value;
+      if (s) params.set('search', s);
       if (role) params.set('role', role);
-      if (status) params.set('status', status);
-
-      const r = await fetch(`/admin/api/users?${params}`);
-      const d = await r.json();
-      const tbody = document.getElementById('users-body');
-
+      if (st) params.set('status', st);
+      const d = await (await fetch(`/admin/api/users?${params}`)).json();
+      const tbody = $('users-body');
       if (!d.users || !d.users.length) {
         tbody.innerHTML = `<tr class="empty"><td colspan="7">No users found.</td></tr>`;
-        document.getElementById('pager').innerHTML = '';
-        return;
+        $('pager').innerHTML = ''; return;
       }
-
       tbody.innerHTML = d.users.map(u => {
         const initial = (u.full_name || u.username || 'U')[0].toUpperCase();
-        const status = u.is_active
+        const stBadge = u.is_active
           ? `<span class="badge badge-low"><i></i>active</span>`
           : `<span class="badge badge-critical"><i></i>inactive</span>`;
-        return `
-          <tr>
-            <td>
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div class="avatar" style="width:30px;height:30px;font-size:12px;">${initial}</div>
-                <div>
-                  <div style="font-weight:600;">${escapeHtml(u.full_name || u.username)}</div>
-                  <div style="font-size:11.5px; color:var(--text-mute);">@${escapeHtml(u.username)}</div>
-                </div>
-              </div>
-            </td>
-            <td>${escapeHtml(u.email)}</td>
-            <td><span class="badge badge-${u.role === 'admin' ? 'critical' : u.role === 'analyst' ? 'medium' : 'low'}">${escapeHtml(u.role || 'user')}</span></td>
-            <td>${status}</td>
-            <td>${escapeHtml(fmtDate(u.last_login))}</td>
-            <td>${escapeHtml(fmtDate(u.created_at))}</td>
-            <td>
-              <button class="btn btn-ghost" style="padding:6px 10px; font-size:12px;" data-edit="${u.id}">Edit</button>
-              <button class="btn btn-ghost" style="padding:6px 10px; font-size:12px;" data-delete="${u.id}" data-username="${escapeHtml(u.username)}">Delete</button>
-            </td>
-          </tr>`;
+        const tone = u.role === 'admin' ? 'critical' : u.role === 'analyst' ? 'medium' : 'low';
+        return `<tr>
+          <td><div style="display:flex;align-items:center;gap:10px;">
+            <div class="avatar" style="width:30px;height:30px;font-size:12px;">${initial}</div>
+            <div><div style="font-weight:600;">${escapeHtml(u.full_name || u.username)}</div>
+              <div style="font-size:11.5px;color:var(--text-mute);">@${escapeHtml(u.username)}</div></div>
+          </div></td>
+          <td>${escapeHtml(u.email)}</td>
+          <td><span class="badge badge-${tone}">${escapeHtml(u.role || 'user')}</span></td>
+          <td>${stBadge}</td>
+          <td>${escapeHtml(fmtDate(u.last_login))}</td>
+          <td>${escapeHtml(fmtDate(u.created_at))}</td>
+          <td><button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" data-edit="${u.id}">Edit</button>
+              <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" data-delete="${u.id}" data-username="${escapeHtml(u.username)}">Delete</button></td>
+        </tr>`;
       }).join('');
-
-      // pagination
       const p = d.pagination;
-      const pager = document.getElementById('pager');
-      pager.innerHTML = `
-        <button class="btn btn-ghost" ${p.page <= 1 ? 'disabled' : ''} data-pg="${p.page - 1}" style="padding:6px 12px;">‹ Prev</button>
-        <span style="padding:6px 12px; color:var(--text-dim); font-size:13px;">Page ${p.page} of ${p.pages || 1} · ${p.total} total</span>
-        <button class="btn btn-ghost" ${!p.has_next ? 'disabled' : ''} data-pg="${p.page + 1}" style="padding:6px 12px;">Next ›</button>
-      `;
-      pager.querySelectorAll('[data-pg]').forEach(b => b.addEventListener('click', () => loadUsers(parseInt(b.dataset.pg))));
-
-      // edit / delete handlers
+      $('pager').innerHTML = `
+        <button class="btn btn-ghost" ${p.page <= 1 ? 'disabled' : ''} data-pg="${p.page-1}" style="padding:6px 12px;">‹ Prev</button>
+        <span style="padding:6px 12px;color:var(--text-dim);font-size:13px;">Page ${p.page} of ${p.pages || 1} · ${p.total} total</span>
+        <button class="btn btn-ghost" ${!p.has_next ? 'disabled' : ''} data-pg="${p.page+1}" style="padding:6px 12px;">Next ›</button>`;
+      $('pager').querySelectorAll('[data-pg]').forEach(b =>
+        b.addEventListener('click', () => loadUsers(parseInt(b.dataset.pg))));
       tbody.querySelectorAll('[data-edit]').forEach(b =>
-        b.addEventListener('click', () => openEdit(parseInt(b.dataset.edit)))
-      );
+        b.addEventListener('click', () => openEdit(parseInt(b.dataset.edit))));
       tbody.querySelectorAll('[data-delete]').forEach(b =>
-        b.addEventListener('click', () => deleteUser(parseInt(b.dataset.delete), b.dataset.username))
-      );
+        b.addEventListener('click', () => deleteUser(parseInt(b.dataset.delete), b.dataset.username)));
     }
+    $('u-apply').addEventListener('click', () => loadUsers(1));
+    $('u-search').addEventListener('keydown', e => { if (e.key === 'Enter') loadUsers(1); });
+    $('u-role').addEventListener('change', () => loadUsers(1));
+    $('u-status').addEventListener('change', () => loadUsers(1));
 
-    document.getElementById('u-apply').addEventListener('click', () => loadUsers(1));
-    document.getElementById('u-search').addEventListener('keydown', e => { if (e.key === 'Enter') loadUsers(1); });
-    document.getElementById('u-role').addEventListener('change', () => loadUsers(1));
-    document.getElementById('u-status').addEventListener('change', () => loadUsers(1));
-
-    // ---------- Edit user modal ----------
     async function openEdit(userId) {
       await loadRolesForSelect();
-
       const r = await fetch(`/admin/api/users/${userId}`);
       if (!r.ok) { toast('Failed to load user', 'error'); return; }
       const { user } = await r.json();
-
-      document.getElementById('edit-title').textContent = `Edit ${user.full_name || user.username}`;
-      document.getElementById('e-id').value = user.id;
-      document.getElementById('e-full_name').value = user.full_name || '';
-      document.getElementById('e-email').value = user.email || '';
-      document.getElementById('e-department').value = user.department || '';
-      document.getElementById('e-phone').value = user.phone || '';
-      document.getElementById('e-is_active').value = user.is_active ? 'true' : 'false';
-      document.getElementById('e-is_verified').value = user.is_verified ? 'true' : 'false';
-      document.getElementById('e-password').value = '';
-
-      const sel = document.getElementById('e-role_id');
-      sel.innerHTML = _roles.map(r =>
-        `<option value="${r.id}" ${r.name === user.role ? 'selected' : ''}>${escapeHtml(r.name)}</option>`
-      ).join('');
-
-      document.getElementById('edit-overlay').style.display = 'flex';
+      $('edit-title').textContent = `Edit ${user.full_name || user.username}`;
+      $('e-id').value = user.id; $('e-full_name').value = user.full_name || '';
+      $('e-email').value = user.email || ''; $('e-department').value = user.department || '';
+      $('e-phone').value = user.phone || '';
+      $('e-is_active').value = user.is_active ? 'true' : 'false';
+      $('e-is_verified').value = user.is_verified ? 'true' : 'false';
+      $('e-password').value = '';
+      $('e-role_id').innerHTML = _roles.map(r =>
+        `<option value="${r.id}" ${r.name === user.role ? 'selected' : ''}>${escapeHtml(r.name)}</option>`).join('');
+      $('edit-overlay').style.display = 'flex';
     }
-
-    function closeEdit() { document.getElementById('edit-overlay').style.display = 'none'; }
-    document.getElementById('edit-close').addEventListener('click', closeEdit);
-    document.getElementById('edit-cancel').addEventListener('click', closeEdit);
-
-    document.getElementById('edit-form').addEventListener('submit', async (e) => {
+    function closeEdit() { $('edit-overlay').style.display = 'none'; }
+    $('edit-close').addEventListener('click', closeEdit);
+    $('edit-cancel').addEventListener('click', closeEdit);
+    $('edit-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const userId = parseInt(document.getElementById('e-id').value);
+      const userId = parseInt($('e-id').value);
       const payload = {
-        full_name: document.getElementById('e-full_name').value,
-        email: document.getElementById('e-email').value,
-        role_id: parseInt(document.getElementById('e-role_id').value),
-        department: document.getElementById('e-department').value,
-        phone: document.getElementById('e-phone').value,
-        is_active: document.getElementById('e-is_active').value === 'true',
-        is_verified: document.getElementById('e-is_verified').value === 'true',
+        full_name: $('e-full_name').value, email: $('e-email').value,
+        role_id: parseInt($('e-role_id').value), department: $('e-department').value,
+        phone: $('e-phone').value,
+        is_active: $('e-is_active').value === 'true',
+        is_verified: $('e-is_verified').value === 'true',
       };
-
       const r = await fetch(`/admin/api/users/${userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await r.json();
       if (!r.ok) { toast(data.error || 'Update failed', 'error'); return; }
-
-      // optional password reset
-      const newPass = document.getElementById('e-password').value;
+      const newPass = $('e-password').value;
       if (newPass && newPass.length >= 8) {
         const pr = await fetch(`/admin/api/users/${userId}/reset-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ new_password: newPass }),
         });
-        const pd = await pr.json();
-        if (!pr.ok) { toast(pd.error || 'Password reset failed', 'error'); return; }
+        if (!pr.ok) { toast((await pr.json()).error || 'Password reset failed', 'error'); return; }
         toast('User updated and password reset');
-      } else {
-        toast('User updated successfully');
-      }
-
-      closeEdit();
-      loadUsers(_page);
-      loadStats();
+      } else { toast('User updated successfully'); }
+      closeEdit(); loadUsers(_userPage); loadStats();
     });
-
     async function deleteUser(userId, username) {
       if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
       const r = await fetch(`/admin/api/users/${userId}`, { method: 'DELETE' });
       const d = await r.json();
-      if (r.ok) {
-        toast(d.message || 'User deleted');
-        loadUsers(_page);
-        loadStats();
-      } else {
-        toast(d.error || 'Delete failed', 'error');
+      if (r.ok) { toast(d.message || 'User deleted'); loadUsers(_userPage); loadStats(); }
+      else { toast(d.error || 'Delete failed', 'error'); }
+    }
+
+    // ------------- BANKING -------------
+    async function loadAccounts() {
+      const status = $('ba-status').value;
+      const params = new URLSearchParams({ per_page: 100 });
+      if (status) params.set('status', status);
+      const d = await (await fetch(`/admin/api/banking/accounts?${params}`)).json();
+      const body = $('ba-body');
+      if (!d.accounts || !d.accounts.length) {
+        body.innerHTML = `<tr class="empty"><td colspan="7">No accounts.</td></tr>`; return;
       }
+      body.innerHTML = d.accounts.map(a => {
+        const tone = a.status === 'active' ? 'low' : a.status === 'frozen' ? 'medium' : 'critical';
+        const action = a.status === 'frozen'
+          ? `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" data-act="activate" data-id="${a.id}">Activate</button>`
+          : `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" data-act="freeze" data-id="${a.id}">Freeze</button>`;
+        return `<tr>
+          <td><strong>${escapeHtml(a.user_full_name || a.username || '—')}</strong>
+            <div style="font-size:11.5px;color:var(--text-mute);">@${escapeHtml(a.username || '')}</div></td>
+          <td><code style="font-size:12px;">${escapeHtml(a.account_number)}</code></td>
+          <td>${escapeHtml(a.account_type)}</td>
+          <td>${escapeHtml(a.currency)}</td>
+          <td>${fmt$(a.balance, a.currency)}</td>
+          <td><span class="badge badge-${tone}">${escapeHtml(a.status)}</span></td>
+          <td>${action}</td></tr>`;
+      }).join('');
+      body.querySelectorAll('[data-act]').forEach(b =>
+        b.addEventListener('click', () => accountAction(b.dataset.id, b.dataset.act)));
     }
-
-    // ---------- Roles ----------
-    async function loadRoles() {
-      const r = await fetch('/admin/api/roles');
-      const d = await r.json();
-      const list = document.getElementById('roles-list');
-      list.innerHTML = (d.roles || []).map(role => {
-        const perms = Object.entries(role.permissions || {})
-          .filter(([, v]) => v)
-          .map(([k]) => `<span class="badge badge-low" style="margin:2px;">${escapeHtml(k.replace(/_/g, ' '))}</span>`)
-          .join(' ') || '<span style="color:var(--text-mute);">No permissions enabled</span>';
-        const tone = role.name === 'admin' ? 'critical' : role.name === 'analyst' ? 'medium' : 'low';
-        return `
-          <div style="padding:16px; background: rgba(10,15,31,0.4); border:1px solid var(--border); border-radius:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="display:flex; gap:10px; align-items:center;">
-                  <span class="badge badge-${tone}" style="text-transform:uppercase;">${escapeHtml(role.name)}</span>
-                  <span style="font-size:12.5px; color:var(--text-dim);">${role.user_count} user${role.user_count === 1 ? '' : 's'}</span>
-                </div>
-                <div style="font-size:13px; color:var(--text-dim); margin-top:6px;">${escapeHtml(role.description || '')}</div>
-              </div>
-            </div>
-            <div style="margin-top:10px;">${perms}</div>
-          </div>`;
-      }).join('') || '<div class="empty-state">No roles found.</div>';
+    async function accountAction(id, action) {
+      const r = await fetch(`/admin/api/banking/accounts/${id}/${action}`, { method: 'POST' });
+      if (r.ok) { toast(`Account ${action}d`); loadAccounts(); loadStats(); }
+      else { toast('Action failed', 'error'); }
     }
+    $('ba-apply').addEventListener('click', loadAccounts);
 
-    // ---------- Audit ----------
-    async function loadAudit() {
-      const r = await fetch('/admin/api/audit-logs?per_page=100');
-      const d = await r.json();
-      const tbody = document.getElementById('audit-body');
-      if (!d.logs || !d.logs.length) {
-        tbody.innerHTML = `<tr class="empty"><td colspan="6">No audit events yet.</td></tr>`;
+    async function loadCards() {
+      const status = $('cd-status').value;
+      const params = new URLSearchParams({ per_page: 100 });
+      if (status) params.set('status', status);
+      const d = await (await fetch(`/admin/api/banking/cards?${params}`)).json();
+      const body = $('cd-body');
+      if (!d.cards || !d.cards.length) {
+        body.innerHTML = `<tr class="empty"><td colspan="7">No cards.</td></tr>`; return;
+      }
+      body.innerHTML = d.cards.map(c => {
+        const tone = c.status === 'active' ? 'low' :
+                     c.status === 'frozen' ? 'medium' :
+                     c.status === 'blocked' ? 'critical' : 'high';
+        let actions = '';
+        if (c.status === 'active') {
+          actions = `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" data-act="freeze" data-id="${c.id}">Freeze</button>
+                     <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;color:var(--red);" data-act="block" data-id="${c.id}">Block</button>`;
+        } else if (c.status === 'frozen' || c.status === 'blocked') {
+          actions = `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" data-act="unblock" data-id="${c.id}">Unblock</button>`;
+        }
+        return `<tr>
+          <td><strong>${escapeHtml(c.user_full_name || c.username || '—')}</strong>
+            <div style="font-size:11.5px;color:var(--text-mute);">@${escapeHtml(c.username || '')}</div></td>
+          <td><code style="font-size:12px;">${escapeHtml(c.card_number_masked)}</code></td>
+          <td>${escapeHtml(c.brand)}</td>
+          <td>${escapeHtml(c.card_type)}</td>
+          <td>${fmt$(c.daily_spent)} / ${fmt$(c.daily_limit)}</td>
+          <td><span class="badge badge-${tone}">${escapeHtml(c.status)}</span></td>
+          <td>${actions}</td></tr>`;
+      }).join('');
+      body.querySelectorAll('[data-act]').forEach(b =>
+        b.addEventListener('click', () => cardAction(b.dataset.id, b.dataset.act)));
+    }
+    async function cardAction(id, action) {
+      let body = null;
+      if (action === 'block') {
+        const reason = prompt('Reason for blocking (will be visible to user):',
+                              'Confirmed fraudulent activity');
+        if (!reason) return;
+        body = { reason };
+      }
+      const r = await fetch(`/admin/api/banking/cards/${id}/${action}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : null,
+      });
+      if (r.ok) { toast(`Card ${action}ed`); loadCards(); loadStats(); }
+      else { toast('Action failed', 'error'); }
+    }
+    $('cd-apply').addEventListener('click', loadCards);
+
+    // ------------- TRANSACTIONS -------------
+    async function loadTransactions() {
+      const params = new URLSearchParams({ per_page: 100 });
+      const r = $('tx-risk').value, d = $('tx-decision').value;
+      if (r) params.set('risk_level', r);
+      if (d) params.set('decision', d);
+      if ($('tx-only-fraud').checked) params.set('only_fraud', '1');
+      const data = await (await fetch(`/admin/api/transactions?${params}`)).json();
+      const body = $('tx-body');
+      if (!data.transactions || !data.transactions.length) {
+        body.innerHTML = `<tr class="empty"><td colspan="8">No transactions.</td></tr>`; return;
+      }
+      body.innerHTML = data.transactions.map(t => {
+        const dTone = t.decision === 'approved' ? 'approve' :
+                      t.decision === 'declined' ? 'declined' : 'review';
+        const reviewBtn = t.decision === 'held_for_review' && t.review_status === 'pending'
+          ? `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;color:var(--green);" data-act="approve" data-id="${t.id}">✓ Approve</button>
+             <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;color:var(--red);" data-act="decline" data-id="${t.id}">✗ Decline</button>`
+          : '—';
+        return `<tr>
+          <td>${escapeHtml(fmtDate(t.processed_at))}</td>
+          <td>${escapeHtml(t.username || '—')}</td>
+          <td>${escapeHtml(t.merchant_name || '—')}<br>
+            <span style="font-size:11px;color:var(--text-mute);">${escapeHtml(t.merchant_category || '')}</span></td>
+          <td>${fmt$(t.amount, t.currency || 'USD')}</td>
+          <td>${escapeHtml(t.country || '—')}</td>
+          <td><span class="badge badge-${escapeHtml(t.risk_level)}"><i></i>${escapeHtml(t.risk_level)}</span></td>
+          <td><span class="badge badge-${dTone}">${escapeHtml(t.decision)}</span></td>
+          <td>${reviewBtn}</td></tr>`;
+      }).join('');
+      body.querySelectorAll('[data-act]').forEach(b =>
+        b.addEventListener('click', () => reviewTxn(b.dataset.id, b.dataset.act)));
+    }
+    async function reviewTxn(id, action) {
+      const r = await fetch(`/admin/api/transactions/${id}/review`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (r.ok) { toast(`Transaction ${action}d`); loadTransactions(); loadStats(); }
+      else { toast('Review failed', 'error'); }
+    }
+    $('tx-apply').addEventListener('click', loadTransactions);
+
+    // ------------- FRAUD -------------
+    async function loadFraudAlerts() {
+      const params = new URLSearchParams({ per_page: 100, only_fraud: '1' });
+      const data = await (await fetch(`/admin/api/transactions?${params}`)).json();
+      const body = $('fr-body');
+      if (!data.transactions || !data.transactions.length) {
+        body.innerHTML = `<tr class="empty"><td colspan="9">No fraud alerts. The model is doing its job ✓</td></tr>`;
         return;
       }
-      tbody.innerHTML = d.logs.map(l => {
-        const tone = l.status === 'failure' ? 'critical' : l.status === 'error' ? 'high' : 'low';
-        return `
-          <tr>
-            <td>${escapeHtml(fmtDate(l.created_at))}</td>
-            <td>${escapeHtml(l.username || '—')}</td>
-            <td><span class="txn-id">${escapeHtml(l.action)}</span></td>
-            <td>${escapeHtml(l.resource || '—')}${l.resource_id ? ` · ${escapeHtml(l.resource_id)}` : ''}</td>
-            <td><span class="badge badge-${tone}">${escapeHtml(l.status || '—')}</span></td>
-            <td>${escapeHtml(l.ip_address || '—')}</td>
-          </tr>`;
+      body.innerHTML = data.transactions.map(t => {
+        const dTone = t.decision === 'approved' ? 'approve' :
+                      t.decision === 'declined' ? 'declined' : 'review';
+        return `<tr>
+          <td>${escapeHtml(fmtDate(t.processed_at))}</td>
+          <td>${escapeHtml(t.username || '—')}</td>
+          <td>${fmt$(t.amount, t.currency || 'USD')}</td>
+          <td>${escapeHtml(t.country || '—')}</td>
+          <td>${escapeHtml(t.merchant_name || '—')}</td>
+          <td><span class="badge badge-${escapeHtml(t.risk_level)}"><i></i>${escapeHtml(t.risk_level)}</span></td>
+          <td><strong>${(t.fraud_probability * 100).toFixed(1)}%</strong></td>
+          <td><span class="badge badge-${dTone}">${escapeHtml(t.decision)}</span></td>
+          <td>${escapeHtml(t.review_status || 'pending')}</td>
+        </tr>`;
       }).join('');
     }
 
-    // ---------- init ----------
+    // ------------- MODEL -------------
+    async function loadModel() {
+      try {
+        const d = await (await fetch('/admin/api/model/info')).json();
+        const m = d.metrics || {};
+        const fi = Object.entries(d.feature_importance || {})
+          .sort((a, b) => b[1] - a[1]).slice(0, 8);
+        $('model-info').innerHTML = `
+          <div class="report-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="mini-card"><div class="label">Accuracy</div>
+              <div class="value">${((m.accuracy || 0) * 100).toFixed(1)}%</div></div>
+            <div class="mini-card"><div class="label">Precision</div>
+              <div class="value">${((m.precision || 0) * 100).toFixed(1)}%</div></div>
+            <div class="mini-card"><div class="label">Recall</div>
+              <div class="value">${((m.recall || 0) * 100).toFixed(1)}%</div></div>
+            <div class="mini-card"><div class="label">ROC-AUC</div>
+              <div class="value">${(m.roc_auc || 0).toFixed(3)}</div></div>
+          </div>
+          <div style="margin-top:14px;font-size:13px;color:var(--text-dim);">
+            Trained on <strong>${m.training_samples || '—'}</strong> samples.
+            Top features: ${fi.map(([k, v]) =>
+              `<span style="margin-right:8px;"><code>${escapeHtml(k)}</code> ${(v * 100).toFixed(1)}%</span>`).join('')}
+          </div>`;
+      } catch { $('model-info').innerHTML = '<div class="empty-state">Failed to load model info.</div>'; }
+    }
+    $('m-retrain').addEventListener('click', async () => {
+      const samples = parseInt($('m-samples').value);
+      const fraudRate = parseFloat($('m-fraud').value);
+      if (!confirm(`Retrain on ${samples} samples with fraud rate ${fraudRate}? This may take a few seconds.`)) return;
+      $('m-status').innerHTML = '<div class="empty-state">Retraining…</div>';
+      $('m-retrain').disabled = true;
+      try {
+        const r = await fetch('/admin/api/model/retrain', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ samples, fraud_rate: fraudRate }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'retrain failed');
+        $('m-status').innerHTML = `<div class="alert alert-success show" style="position:static;">
+          ✓ Retrained — accuracy ${(d.metrics.accuracy * 100).toFixed(1)}%, ROC-AUC ${d.metrics.roc_auc.toFixed(3)}.
+        </div>`;
+        toast('Model retrained successfully');
+        loadModel();
+      } catch (e) {
+        $('m-status').innerHTML = `<div class="alert alert-error show" style="position:static;">${escapeHtml(e.message)}</div>`;
+      }
+      $('m-retrain').disabled = false;
+    });
+
+    // ------------- LIVE STREAMS -------------
+    async function loadStreams() {
+      const d = await (await fetch('/admin/api/live-streams')).json();
+      const body = $('st-body');
+      if (!d.streams || !d.streams.length) {
+        body.innerHTML = `<tr class="empty"><td colspan="5">No live streams running.</td></tr>`; return;
+      }
+      body.innerHTML = d.streams.map(s => `
+        <tr>
+          <td><strong>${escapeHtml(s.username || `user ${s.user_id}`)}</strong></td>
+          <td>${s.rate_per_min}/min</td>
+          <td>${(s.fraud_rate * 100).toFixed(1)}%</td>
+          <td>${s.count}</td>
+          <td>${escapeHtml(fmtDate(s.started_at))}</td>
+        </tr>`).join('');
+    }
+    $('st-stop-all').addEventListener('click', async () => {
+      if (!confirm('Stop ALL live streams system-wide?')) return;
+      const r = await fetch('/admin/api/live-streams/stop-all', { method: 'POST' });
+      if (r.ok) { toast('All streams stopped'); loadStreams(); }
+    });
+
+    // ------------- ROLES -------------
+    async function loadRoles() {
+      const d = await (await fetch('/admin/api/roles')).json();
+      $('roles-list').innerHTML = (d.roles || []).map(role => {
+        const perms = Object.entries(role.permissions || {}).filter(([, v]) => v)
+          .map(([k]) => `<span class="badge badge-low" style="margin:2px;">${escapeHtml(k.replace(/_/g, ' '))}</span>`)
+          .join(' ') || '<span style="color:var(--text-mute);">No permissions</span>';
+        const tone = role.name === 'admin' ? 'critical' : role.name === 'analyst' ? 'medium' : 'low';
+        return `<div style="padding:16px;background:rgba(10,15,31,0.4);border:1px solid var(--border);border-radius:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><div style="display:flex;gap:10px;align-items:center;">
+              <span class="badge badge-${tone}" style="text-transform:uppercase;">${escapeHtml(role.name)}</span>
+              <span style="font-size:12.5px;color:var(--text-dim);">${role.user_count} user${role.user_count===1?'':'s'}</span></div>
+              <div style="font-size:13px;color:var(--text-dim);margin-top:6px;">${escapeHtml(role.description || '')}</div></div></div>
+          <div style="margin-top:10px;">${perms}</div></div>`;
+      }).join('') || '<div class="empty-state">No roles found.</div>';
+    }
+
+    // ------------- AUDIT -------------
+    async function loadAudit() {
+      const d = await (await fetch('/admin/api/audit-logs?per_page=100')).json();
+      const body = $('audit-body');
+      if (!d.logs || !d.logs.length) {
+        body.innerHTML = `<tr class="empty"><td colspan="6">No audit events yet.</td></tr>`; return;
+      }
+      body.innerHTML = d.logs.map(l => {
+        const tone = l.status === 'failure' ? 'critical' : l.status === 'error' ? 'high' : 'low';
+        return `<tr>
+          <td>${escapeHtml(fmtDate(l.created_at))}</td>
+          <td>${escapeHtml(l.username || '—')}</td>
+          <td><span class="txn-id">${escapeHtml(l.action)}</span></td>
+          <td>${escapeHtml(l.resource || '—')}${l.resource_id ? ` · ${escapeHtml(l.resource_id)}` : ''}</td>
+          <td><span class="badge badge-${tone}">${escapeHtml(l.status || '—')}</span></td>
+          <td>${escapeHtml(l.ip_address || '—')}</td></tr>`;
+      }).join('');
+    }
+
+    // ------------- Real-time SSE: live updates for transactions tab -------------
+    function connectStream() {
+      try {
+        const es = new EventSource('/api/stream');
+        const refreshIfTabActive = (tab, fn) => () => {
+          if (document.querySelector(`.tab[data-tab="${tab}"]`).classList.contains('tab-active')) fn();
+        };
+        es.addEventListener('banking.payment', refreshIfTabActive('transactions', loadTransactions));
+        es.addEventListener('banking.payment', refreshIfTabActive('fraud', loadFraudAlerts));
+        es.addEventListener('transaction.alert', () => { loadStats(); });
+        es.addEventListener('card.blocked', () => { loadStats(); loadCards(); });
+      } catch {}
+    }
+
+    // ------------- init -------------
     loadStats();
     loadRolesForSelect();
     loadUsers(1);
+    connectStream();
     setInterval(loadStats, 8000);
   </script>
 </body>
