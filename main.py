@@ -78,6 +78,12 @@ def create_app() -> Flask:
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600  # 1 hour
+
+    # Upload settings (KYC ID-proof images)
+    app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8 MB hard cap
+    upload_dir = ROOT / "data" / "uploads" / "id_proofs"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    app.config['ID_PROOF_UPLOAD_DIR'] = str(upload_dir)
     
     # Initialize extensions
     CORS(app)

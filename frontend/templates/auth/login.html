@@ -104,9 +104,21 @@
     <div class="auth-card">
       <div class="auth-brand">
         <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="M9 12l2 2 4-4" />
+          <svg viewBox="0 0 64 64" fill="none">
+            <defs>
+              <linearGradient id="lgl" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#6366f1"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+            </defs>
+            <path d="M32 4 L56 12 V32 C56 46 44 56 32 60 C20 56 8 46 8 32 V12 Z"
+                  fill="url(#lgl)" />
+            <circle cx="32" cy="26" r="9" fill="none" stroke="white" stroke-width="2.4"/>
+            <circle cx="29" cy="24" r="1.3" fill="white"/>
+            <circle cx="35" cy="24" r="1.3" fill="white"/>
+            <path d="M28 30 Q32 33 36 30" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 44 L29 50 L42 38" fill="none" stroke="white"
+                  stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div>
@@ -235,6 +247,18 @@
       input.type = input.type === 'password' ? 'text' : 'password';
     });
 
+    // Pre-fill remembered username (from previous successful login or registration)
+    (function prefillRememberedUsername() {
+      const remembered = localStorage.getItem('sentinel_remembered_username');
+      if (!remembered) return;
+      const u1 = document.getElementById('username');
+      const u2 = document.getElementById('face-username');
+      if (u1 && !u1.value) u1.value = remembered;
+      if (u2 && !u2.value) u2.value = remembered;
+      const rememberCb = document.getElementById('remember');
+      if (rememberCb) rememberCb.checked = true;
+    })();
+
     // Standard form submission
     document.getElementById('login-form').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -257,6 +281,12 @@
           showAlert('Login successful! Redirecting...', 'success');
           localStorage.setItem('access_token', data.access_token);
           localStorage.setItem('user', JSON.stringify(data.user));
+          // Remember username for next visit if requested
+          if (document.getElementById('remember').checked) {
+            localStorage.setItem('sentinel_remembered_username', data.user.username);
+          } else {
+            localStorage.removeItem('sentinel_remembered_username');
+          }
           setTimeout(() => { window.location.href = '/dashboard'; }, 500);
         } else {
           showAlert(data.error || 'Login failed', 'error');
@@ -500,6 +530,7 @@
             setStatus(`<strong>Match!</strong> Signing you in…`, 'ok');
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('sentinel_remembered_username', data.user.username);
             stopFlCamera();
             setTimeout(() => { window.location.href = '/dashboard'; }, 700);
             return;

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash
 
 from src.database import db
 from src.database.models import User, Role, AuditLog
@@ -710,9 +711,208 @@ def api_face_login():
 
 
 # ============================================================
+# KYC REGISTRATION (one-shot account + ID proof + face)
+# ============================================================
+# Replaces the older 3-step "register, then add ID, then enroll face"
+# flow. The new register page does everything in a single multipart
+# POST so a fresh user lands on the dashboard with their KYC complete
+# and face-login already enabled.
+
+import json as _json
+import os as __os
+import uuid as _uuid
+from werkzeug.utils import secure_filename
+from flask import current_app, send_from_directory
+
+
+_ID_PROOF_TYPES = {'passport', 'aadhaar', 'pan', 'driving_license', 'national_id'}
+_ID_PROOF_ALLOWED_EXT = {'jpg', 'jpeg', 'png', 'webp'}
+_ID_PROOF_ALLOWED_MIME = {'image/jpeg', 'image/png', 'image/webp'}
+_ID_PROOF_MAX_BYTES = 5 * 1024 * 1024   # 5 MB per file
+
+
+def _password_strength_ok(pw: str) -> tuple[bool, str]:
+    """Conservative password rules: 8+ chars, mixed case, digit."""
+    if not pw or len(pw) < 8:
+        return False, 'Password must be at least 8 characters'
+    if not any(c.islower() for c in pw):
+        return False, 'Password must contain a lowercase letter'
+    if not any(c.isupper() for c in pw):
+        return False, 'Password must contain an uppercase letter'
+    if not any(c.isdigit() for c in pw):
+        return False, 'Password must contain a digit'
+    return True, ''
+
+
+@auth_bp.route('/api/register-kyc', methods=['POST'])
+def api_register_kyc():
+    """
+    One-shot KYC + account creation.
+
+    multipart/form-data fields:
+      username, email, password, full_name        — account
+      id_type   (passport|aadhaar|pan|driving_license|national_id)
+      id_number (string, will be hashed)
+      id_file   (image upload, jpg/png/webp, <= 5 MB)
+      face_descriptor (JSON-encoded 128-dim array)
+
+    Creates the user, stores the ID file under data/uploads/id_proofs/,
+    saves the face descriptor (so face login works on next visit),
+    auto-logs in, and returns a JWT pair.
+    """
+    form = request.form
+    files = request.files
+
+    username = (form.get('username') or '').strip()
+    email = (form.get('email') or '').strip().lower()
+    password = form.get('password') or ''
+    full_name = (form.get('full_name') or '').strip() or None
+    id_type = (form.get('id_type') or '').strip().lower()
+    id_number = (form.get('id_number') or '').strip()
+    descriptor_raw = form.get('face_descriptor') or ''
+    id_file = files.get('id_file')
+
+    # --- validate ---------------------------------------------------
+    if not username or len(username) < 3 or len(username) > 50:
+        return jsonify({'error': 'Username must be 3-50 characters'}), 400
+    if not email or '@' not in email:
+        return jsonify({'error': 'Valid email required'}), 400
+
+    ok, msg = _password_strength_ok(password)
+    if not ok:
+        return jsonify({'error': msg}), 400
+
+    if id_type not in _ID_PROOF_TYPES:
+        return jsonify({'error': 'Invalid ID type'}), 400
+    if not id_number or len(id_number) < 4:
+        return jsonify({'error': 'ID number is required'}), 400
+    if not id_file or not id_file.filename:
+        return jsonify({'error': 'ID proof image is required'}), 400
+
+    ext = id_file.filename.rsplit('.', 1)[-1].lower() if '.' in id_file.filename else ''
+    if ext not in _ID_PROOF_ALLOWED_EXT:
+        return jsonify({'error': 'ID proof must be jpg, png, or webp'}), 400
+    if id_file.mimetype not in _ID_PROOF_ALLOWED_MIME:
+        return jsonify({'error': 'Unsupported file type'}), 400
+
+    # Cheap server-side size guard (Flask's MAX_CONTENT_LENGTH is the hard cap)
+    id_file.stream.seek(0, 2)
+    size = id_file.stream.tell()
+    id_file.stream.seek(0)
+    if size > _ID_PROOF_MAX_BYTES:
+        return jsonify({'error': 'ID proof image must be 5 MB or smaller'}), 400
+    if size < 1024:
+        return jsonify({'error': 'ID proof image is too small / empty'}), 400
+
+    # Face descriptor (optional — you can skip face on register and add it later)
+    face_descriptor = None
+    if descriptor_raw:
+        try:
+            parsed = _json.loads(descriptor_raw)
+        except _json.JSONDecodeError:
+            return jsonify({'error': 'Invalid face descriptor format'}), 400
+        if not _validate_descriptor(parsed):
+            return jsonify({'error': 'Invalid face descriptor (expected 128 numbers)'}), 400
+        face_descriptor = [float(x) for x in parsed]
+
+    # --- uniqueness -------------------------------------------------
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username already taken'}), 409
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'Email already registered'}), 409
+
+    viewer_role = Role.query.filter_by(name='viewer').first()
+    if not viewer_role:
+        return jsonify({'error': 'System configuration error'}), 500
+
+    # --- save ID proof file ----------------------------------------
+    upload_dir = current_app.config.get('ID_PROOF_UPLOAD_DIR')
+    if not upload_dir:
+        return jsonify({'error': 'Upload directory not configured'}), 500
+    safe_username = secure_filename(username) or 'user'
+    fname = f"{safe_username}_{_uuid.uuid4().hex[:12]}.{ext}"
+    fpath = __os.path.join(upload_dir, fname)
+    try:
+        id_file.save(fpath)
+    except Exception as e:
+        return jsonify({'error': f'Could not save ID proof: {e}'}), 500
+
+    # --- create user -----------------------------------------------
+    user = User(
+        username=username,
+        email=email,
+        full_name=full_name,
+        role_id=viewer_role.id,
+        is_active=True,
+        is_verified=False,
+    )
+    user.set_password(password)
+    user.id_proof_type = id_type
+    user.id_proof_number_hash = generate_password_hash(id_number)
+    user.id_proof_last4 = id_number[-4:]
+    user.id_proof_file = f"id_proofs/{fname}"   # relative path under data/uploads
+    user.kyc_completed_at = datetime.utcnow()
+
+    if face_descriptor is not None:
+        user.face_descriptor = face_descriptor
+        user.face_enabled = True
+        user.face_enrolled_at = datetime.utcnow()
+
+    db.session.add(user)
+    db.session.commit()
+
+    # Seed banking so dashboard works on first login
+    try:
+        from src.banking import seed_user_banking
+        seed_user_banking(user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Banking seed failed for {user.username}: {e}")
+
+    # Auto-login
+    login_user(user, remember=False)
+    user.last_login = datetime.utcnow()
+    db.session.commit()
+
+    access_token = create_access_token(identity=user.id, fresh=True)
+    refresh_token = create_refresh_token(identity=user.id)
+
+    log_audit(
+        user_id=user.id,
+        username=user.username,
+        action='user_registered_kyc',
+        resource='auth',
+        status='success',
+        details={'id_type': id_type, 'face_enrolled': face_descriptor is not None},
+    )
+
+    return jsonify({
+        'success': True,
+        'message': 'Registration & KYC complete',
+        'user': user.to_dict(include_sensitive=True),
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+    }), 201
+
+
+@auth_bp.route('/api/admin/id-proof/<int:user_id>', methods=['GET'])
+@login_required
+def api_admin_view_id_proof(user_id):
+    """Admin-only: download the uploaded ID proof image for a user."""
+    if not current_user.is_admin():
+        return jsonify({'error': 'Forbidden'}), 403
+    user = User.query.get_or_404(user_id)
+    if not user.id_proof_file:
+        return jsonify({'error': 'No ID proof on file'}), 404
+
+    upload_root = __os.path.dirname(current_app.config['ID_PROOF_UPLOAD_DIR'])
+    return send_from_directory(upload_root, user.id_proof_file, as_attachment=False)
+
+
+# ============================================================
 # HELPER FUNCTIONS
 # ============================================================
-
 def log_audit(user_id=None, username=None, action=None, resource=None, 
               resource_id=None, details=None, status='success'):
     """Log action to audit trail."""

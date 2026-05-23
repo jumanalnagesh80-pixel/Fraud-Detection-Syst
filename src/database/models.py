@@ -77,7 +77,14 @@ class User(UserMixin, db.Model):
     face_descriptor = db.Column(db.JSON)             # 128-dim float array from face-api.js
     face_enabled = db.Column(db.Boolean, default=False)
     face_enrolled_at = db.Column(db.DateTime)
-    
+
+    # KYC / ID proof (captured once at registration)
+    id_proof_type = db.Column(db.String(40))            # passport | aadhaar | pan | driving_license | national_id
+    id_proof_number_hash = db.Column(db.String(255))    # bcrypt hash of full ID number
+    id_proof_last4 = db.Column(db.String(8))            # last 4 chars, for display only
+    id_proof_file = db.Column(db.String(300))           # path to uploaded image (under data/uploads/id_proofs)
+    kyc_completed_at = db.Column(db.DateTime)
+
     # Notification preferences
     notify_email = db.Column(db.Boolean, default=True)
     notify_high_risk = db.Column(db.Boolean, default=True)
@@ -150,6 +157,10 @@ class User(UserMixin, db.Model):
             'security_question': self.security_question if include_sensitive else None,
             'face_enabled': bool(self.face_enabled and self.face_descriptor),
             'face_enrolled_at': self.face_enrolled_at.isoformat() if self.face_enrolled_at else None,
+            'kyc_completed': bool(self.kyc_completed_at),
+            'kyc_completed_at': self.kyc_completed_at.isoformat() if self.kyc_completed_at else None,
+            'id_proof_type': self.id_proof_type,
+            'id_proof_last4': self.id_proof_last4,
             'notify_email': self.notify_email,
             'notify_high_risk': self.notify_high_risk,
             'notify_critical_only': self.notify_critical_only,

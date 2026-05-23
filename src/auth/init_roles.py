@@ -141,6 +141,11 @@ def ensure_user_columns():
         ('face_descriptor',        'JSON'),
         ('face_enabled',           'BOOLEAN DEFAULT 0'),
         ('face_enrolled_at',       'DATETIME'),
+        ('id_proof_type',          'VARCHAR(40)'),
+        ('id_proof_number_hash',   'VARCHAR(255)'),
+        ('id_proof_last4',         'VARCHAR(8)'),
+        ('id_proof_file',          'VARCHAR(300)'),
+        ('kyc_completed_at',       'DATETIME'),
     ]
 
     from sqlalchemy import text

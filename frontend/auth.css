@@ -103,14 +103,14 @@ html, body {
   border-radius: 14px;
   display: grid;
   place-items: center;
-  background: var(--primary);
+  background: transparent;
   color: white;
-  box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.6);
+  box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.55);
 }
 
 .brand-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 54px;
+  height: 54px;
 }
 
 .brand-title {
