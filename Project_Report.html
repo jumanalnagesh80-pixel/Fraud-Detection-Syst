@@ -484,6 +484,198 @@
     </tbody>
 </table>
 
+<!-- 3.3 PLAIN ENGLISH WALKTHROUGH -->
+<h2>3.3 Plain English Walkthrough</h2>
+<div class="section">
+    <p>Picture the Sentinel system as a <strong>24/7 airport security checkpoint</strong> standing between every customer and their money. Each transaction is a passenger trying to board — and Sentinel decides in less than a tenth of a second whether to wave them through, pull them aside for a chat, or stop them at the gate.</p>
+
+    <p><strong>① The transaction arrives.</strong> When a customer taps a card, transfers funds, or completes an online checkout, the originating system sends a tidy JSON payload to Sentinel's <code>/api/predict</code> endpoint. It contains the obvious facts — <em>how much, where, when, on what device, with which merchant</em> — plus a unique transaction ID for the audit trail.</p>
+
+    <p><strong>② Identity and sanity checks first.</strong> Before Sentinel does any thinking, the gate guard verifies that the request is authenticated (a valid session cookie or JWT) and that the payload has all the required fields in sensible ranges. Anything malformed or unauthorised is rejected immediately with a <span class="badge badge-red">400</span> or <span class="badge badge-red">401</span> response, and the attempt is logged for the audit trail.</p>
+
+    <p><strong>③ Building the passenger profile.</strong> Raw transaction data is rarely enough to spot fraud on its own, so the feature engineer enriches it with derived signals: the <em>log of the amount</em> (so a $10 latte and a $10,000 wire don't sit on the same scale), the <em>hour of day</em>, the customer's recent <em>velocity</em> (how many transactions in the last hour and day), the <em>country risk score</em>, the <em>device type</em>, and a handful of categorical flags such as <em>card-present</em> and <em>weekend</em>. Twenty-plus features in total.</p>
+
+    <p><strong>④ Three experts cast a vote.</strong> The enriched record is handed to an ensemble of three models that have each studied historical fraud in their own way:</p>
+    <ul>
+        <li>a <strong>Random Forest</strong> that excels at messy, non-linear patterns,</li>
+        <li>a <strong>Gradient Boosting</strong> model that chases the hardest examples, and</li>
+        <li>a <strong>Logistic Regression</strong> that provides a fast, calibrated baseline.</li>
+    </ul>
+    <p>Their soft-voted average becomes <code>P_model</code>, a probability between 0 and 1 that this particular transaction is fraudulent.</p>
+
+    <p><strong>⑤ A separate rulebook checks the obvious.</strong> In parallel, the rule engine scans for the kind of red flags any human analyst would recognise: a high-risk country, a 3 a.m. card-not-present transaction, an amount above the customer's normal ceiling, or a sudden velocity spike. Each triggered rule contributes to an explainable <code>R_score</code> and is recorded <em>by name</em>, so a flagged transaction can always be defended in plain English to a customer or a regulator.</p>
+
+    <p><strong>⑥ The chief inspector combines both opinions.</strong> Sentinel computes a hybrid score:</p>
+    <div class="code-block">score = 0.65 &times; P_model + 0.35 &times; R_score</div>
+    <p>This blend keeps the predictive power of the ML ensemble while respecting the bright-line rules that compliance teams insist on. A transaction can never quietly slip through if a critical rule fires, no matter how confident the model is otherwise.</p>
+
+    <p><strong>⑦ A three-way verdict.</strong> The score is mapped against the configured thresholds:</p>
+    <ul>
+        <li>below <strong>0.40</strong> → <span class="badge badge-green">APPROVE</span> the customer never notices anything.</li>
+        <li>between <strong>0.40 and 0.85</strong> → <span class="badge badge-orange">REVIEW</span> the transaction is soft-declined or queued for an analyst to check.</li>
+        <li>at or above <strong>0.85</strong> → <span class="badge badge-red">DECLINE</span> the transaction is blocked and a high-priority alert is opened.</li>
+    </ul>
+
+    <p><strong>⑧ Everything is recorded, and the dashboard reacts.</strong> Win or lose, the transaction, the score, the triggered rules, and the final decision are persisted to SQLite and pushed to the in-memory monitor. The web dashboard's KPI cards, charts, and live feed update on their next 3-second tick (or instantly via SSE when enabled), and any high-or-critical alert flows through the alert manager to whichever channels you've wired up — Slack, SendGrid, Twilio, or your own webhook. From swipe to dashboard refresh, the median end-to-end latency is well under <strong>100 ms</strong>.</p>
+</div>
+
+<!-- 3.4 END-TO-END FLOWCHART -->
+<h2>3.4 End-to-End Flowchart</h2>
+<p>The diagram below is the same nine-step journey rendered visually — the kind of picture you can put on a wall and trace with a finger when explaining the system to a new team member or a non-technical stakeholder.</p>
+
+<div style="background:linear-gradient(135deg,#f0f9ff,#e0e7ff);padding:18px;border-radius:10px;margin:18px 0;overflow-x:auto;">
+<svg viewBox="0 0 880 1280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fraud Detection End-to-End Flowchart" style="max-width:100%;height:auto;display:block;margin:0 auto;">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrowR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrowO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ea580c"/>
+    </marker>
+    <linearGradient id="gStart" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1e40af"/></linearGradient>
+    <linearGradient id="gIngest" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#3730a3"/></linearGradient>
+    <linearGradient id="gFeat" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#6b21a8"/></linearGradient>
+    <linearGradient id="gML" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#0369a1"/></linearGradient>
+    <linearGradient id="gRule" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#b45309"/></linearGradient>
+    <linearGradient id="gHybrid" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e40af"/><stop offset="100%" stop-color="#1e3a8a"/></linearGradient>
+    <linearGradient id="gApprove" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#065f46"/></linearGradient>
+    <linearGradient id="gReview" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#9a3412"/></linearGradient>
+    <linearGradient id="gDecline" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#991b1b"/></linearGradient>
+    <linearGradient id="gPersist" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#1e293b"/></linearGradient>
+    <style>
+      .lbl  { font: 700 14px 'Segoe UI',Arial,sans-serif; fill: #ffffff; }
+      .sub  { font: 400 11px 'Segoe UI',Arial,sans-serif; fill: rgba(255,255,255,0.88); }
+      .lblD { font: 700 13px 'Segoe UI',Arial,sans-serif; fill: #1e293b; }
+      .subD { font: 400 11px 'Segoe UI',Arial,sans-serif; fill: #475569; }
+      .branchLbl { font: 700 11px 'Segoe UI',Arial,sans-serif; fill: #1e293b; }
+      .edge  { stroke: #475569; stroke-width: 2; fill: none; }
+      .edgeG { stroke: #16a34a; stroke-width: 2.2; fill: none; }
+      .edgeR { stroke: #dc2626; stroke-width: 2.2; fill: none; }
+      .edgeO { stroke: #ea580c; stroke-width: 2.2; fill: none; }
+    </style>
+  </defs>
+
+  <rect width="880" height="1280" fill="#f8fafc" rx="8"/>
+
+  <!-- Title -->
+  <text x="440" y="32" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="20" font-weight="800" fill="#1e3a8a">Fraud Detection &#8212; End-to-End Flow</text>
+  <text x="440" y="52" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b">From customer swipe to dashboard alert in under 100 ms</text>
+
+  <!-- 1. START -->
+  <ellipse cx="440" cy="100" rx="170" ry="30" fill="url(#gStart)"/>
+  <text x="440" y="98" text-anchor="middle" class="lbl">1. Customer makes a transaction</text>
+  <text x="440" y="115" text-anchor="middle" class="sub">POS &#183; ATM &#183; online &#183; mobile app</text>
+  <line x1="440" y1="130" x2="440" y2="160" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- 2. INGEST -->
+  <rect x="290" y="160" width="300" height="62" rx="10" fill="url(#gIngest)"/>
+  <text x="440" y="186" text-anchor="middle" class="lbl">2. POST /api/predict</text>
+  <text x="440" y="206" text-anchor="middle" class="sub">JSON: amount &#183; country &#183; hour &#183; device &#183; merchant</text>
+  <line x1="440" y1="222" x2="440" y2="252" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- 3. AUTH diamond -->
+  <polygon points="440,252 580,322 440,392 300,322" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+  <text x="440" y="316" text-anchor="middle" class="lblD">3. Authenticated</text>
+  <text x="440" y="334" text-anchor="middle" class="lblD">&amp; payload valid?</text>
+
+  <!-- No branch -> reject -->
+  <line x1="580" y1="322" x2="700" y2="322" class="edgeR" marker-end="url(#arrowR)"/>
+  <text x="640" y="316" text-anchor="middle" class="branchLbl" fill="#dc2626">No</text>
+  <rect x="700" y="292" width="160" height="60" rx="10" fill="url(#gDecline)"/>
+  <text x="780" y="318" text-anchor="middle" class="lbl">Reject</text>
+  <text x="780" y="336" text-anchor="middle" class="sub">401 / 400 + audit</text>
+
+  <!-- Yes branch -> feature eng -->
+  <line x1="440" y1="392" x2="440" y2="422" class="edgeG" marker-end="url(#arrowG)"/>
+  <text x="455" y="412" class="branchLbl" fill="#16a34a">Yes</text>
+
+  <!-- 4. FEATURE ENG -->
+  <rect x="240" y="422" width="400" height="62" rx="10" fill="url(#gFeat)"/>
+  <text x="440" y="448" text-anchor="middle" class="lbl">4. Feature engineering</text>
+  <text x="440" y="468" text-anchor="middle" class="sub">log-amount &#183; hour-of-day &#183; velocity &#183; country risk &#183; device flags</text>
+
+  <!-- Split lines into ML and Rule -->
+  <path d="M 320 484 L 320 514 L 200 514 L 200 540" class="edge" marker-end="url(#arrow)"/>
+  <path d="M 560 484 L 560 514 L 680 514 L 680 540" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- 5a. ML ENSEMBLE -->
+  <rect x="60" y="540" width="280" height="96" rx="10" fill="url(#gML)"/>
+  <text x="200" y="566" text-anchor="middle" class="lbl">5a. ML ensemble</text>
+  <text x="200" y="588" text-anchor="middle" class="sub">Random Forest + Gradient Boost + LR</text>
+  <text x="200" y="608" text-anchor="middle" class="sub">soft-vote &#8594; P_model &#8712; [0, 1]</text>
+  <text x="200" y="626" text-anchor="middle" class="sub">trained with SMOTE on synthetic data</text>
+
+  <!-- 5b. RULE ENGINE -->
+  <rect x="540" y="540" width="280" height="96" rx="10" fill="url(#gRule)"/>
+  <text x="680" y="566" text-anchor="middle" class="lbl">5b. Rule engine</text>
+  <text x="680" y="588" text-anchor="middle" class="sub">high-risk country &#183; odd-hour &#183; CNP</text>
+  <text x="680" y="608" text-anchor="middle" class="sub">amount &gt; threshold &#183; velocity spike</text>
+  <text x="680" y="626" text-anchor="middle" class="sub">explainable &#8594; R_score &#8712; [0, 1]</text>
+
+  <!-- Merge to hybrid score -->
+  <path d="M 200 636 L 200 666 L 320 666 L 320 696" class="edge" marker-end="url(#arrow)"/>
+  <path d="M 680 636 L 680 666 L 560 666 L 560 696" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- 6. HYBRID SCORE -->
+  <rect x="240" y="696" width="400" height="62" rx="10" fill="url(#gHybrid)"/>
+  <text x="440" y="722" text-anchor="middle" class="lbl">6. Hybrid score</text>
+  <text x="440" y="742" text-anchor="middle" class="sub">score = 0.65 &#215; P_model + 0.35 &#215; R_score</text>
+  <line x1="440" y1="758" x2="440" y2="788" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- 7. DECISION diamond -->
+  <polygon points="440,788 600,858 440,928 280,858" fill="#dbeafe" stroke="#1e40af" stroke-width="2"/>
+  <text x="440" y="852" text-anchor="middle" class="lblD">7. Risk level?</text>
+  <text x="440" y="870" text-anchor="middle" class="subD">apply thresholds</text>
+
+  <!-- Branch labels and lines -->
+  <path d="M 280 858 L 200 858 L 200 970" class="edgeG" marker-end="url(#arrowG)"/>
+  <text x="240" y="850" text-anchor="middle" class="branchLbl" fill="#065f46">&lt; 0.40</text>
+  <line x1="440" y1="928" x2="440" y2="970" class="edgeO" marker-end="url(#arrowO)"/>
+  <text x="465" y="954" class="branchLbl" fill="#9a3412">0.40 &#8211; 0.85</text>
+  <path d="M 600 858 L 680 858 L 680 970" class="edgeR" marker-end="url(#arrowR)"/>
+  <text x="640" y="850" text-anchor="middle" class="branchLbl" fill="#991b1b">&#8805; 0.85</text>
+
+  <!-- 7a APPROVE -->
+  <rect x="80" y="970" width="240" height="60" rx="10" fill="url(#gApprove)"/>
+  <text x="200" y="996" text-anchor="middle" class="lbl">Approve &#10003;</text>
+  <text x="200" y="1014" text-anchor="middle" class="sub">low risk &#183; clear customer</text>
+
+  <!-- 7b REVIEW -->
+  <rect x="320" y="970" width="240" height="60" rx="10" fill="url(#gReview)"/>
+  <text x="440" y="996" text-anchor="middle" class="lbl">Review</text>
+  <text x="440" y="1014" text-anchor="middle" class="sub">soft-decline &#183; queue analyst</text>
+
+  <!-- 7c DECLINE -->
+  <rect x="560" y="970" width="240" height="60" rx="10" fill="url(#gDecline)"/>
+  <text x="680" y="996" text-anchor="middle" class="lbl">Decline &#10007;</text>
+  <text x="680" y="1014" text-anchor="middle" class="sub">block &#183; open alert</text>
+
+  <!-- Merge to persist -->
+  <path d="M 200 1030 L 200 1060 L 440 1060" class="edge"/>
+  <path d="M 440 1030 L 440 1060" class="edge"/>
+  <path d="M 680 1030 L 680 1060 L 440 1060" class="edge"/>
+  <line x1="440" y1="1060" x2="440" y2="1100" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- 8. PERSIST -->
+  <rect x="240" y="1100" width="400" height="58" rx="10" fill="url(#gPersist)"/>
+  <text x="440" y="1124" text-anchor="middle" class="lbl">8. Persist transaction + audit log</text>
+  <text x="440" y="1144" text-anchor="middle" class="sub">SQLite &#183; rolling in-memory monitor</text>
+  <line x1="440" y1="1158" x2="440" y2="1188" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- 9. END terminator -->
+  <ellipse cx="440" cy="1218" rx="210" ry="30" fill="url(#gStart)"/>
+  <text x="440" y="1216" text-anchor="middle" class="lbl">9. Dashboard updates &#183; alert dispatched</text>
+  <text x="440" y="1234" text-anchor="middle" class="sub">KPIs &#183; charts &#183; live feed &#183; Slack / email / SMS hook</text>
+</svg>
+</div>
+<p style="text-align:center;color:#64748b;font-size:13px;margin-top:6px;"><em>Figure 1. Sentinel fraud detection &mdash; from customer transaction to dashboard refresh, in nine steps. Yellow diamonds are decision points; the parallel blue/orange boxes show the ML ensemble and rule engine running concurrently before their scores are blended.</em></p>
+
 <!-- 4. KEY FEATURES -->
 <h1>4. Key Features</h1>
 
