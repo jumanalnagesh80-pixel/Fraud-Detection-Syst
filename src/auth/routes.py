@@ -512,8 +512,11 @@ def api_forgot_password():
 # ============================================================
 # Uses face-api.js client-side to compute a 128-dim descriptor.
 # We compare the descriptors server-side via Euclidean distance.
-# A distance < 0.6 is the standard same-face threshold for face-api.js.
-FACE_MATCH_THRESHOLD = 0.6
+# Default threshold of 0.55 is slightly tighter than face-api.js's 0.6
+# default — more strict to reduce false positives, but the env var
+# FACE_MATCH_THRESHOLD lets you tune it.
+import os as _os
+FACE_MATCH_THRESHOLD = float(_os.environ.get('FACE_MATCH_THRESHOLD', '0.55'))
 
 
 def _euclidean_distance(a, b) -> float:

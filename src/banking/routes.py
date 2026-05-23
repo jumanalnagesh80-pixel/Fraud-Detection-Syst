@@ -35,6 +35,7 @@ from src.database import db
 from src.database.models import BankAccount, Card, TransactionRecord, User
 
 from . import utils
+from .live_stream import get_manager as _get_live_manager
 from .seed import (
     DEFAULT_DAILY_CARD_LIMIT,
     DEFAULT_OPENING_BALANCE,
@@ -490,6 +491,53 @@ def create_banking_blueprint() -> Blueprint:
             "card": card.to_dict(),
             "account": account.to_dict(),
         }), 200 if decision == 'approve' else 402
+
+    # ==================================================================
+    # LIVE STREAM - simulated real merchant activity on the user's cards
+    # ==================================================================
+    @bp.get("/stream/status")
+    @login_required
+    def stream_status():
+        return jsonify(_get_live_manager().status(current_user.id))
+
+    @bp.post("/stream/start")
+    @login_required
+    def stream_start():
+        data = request.get_json(silent=True) or {}
+        try:
+            rate = int(data.get("rate_per_min", 12))
+        except (TypeError, ValueError):
+            rate = 12
+        try:
+            fraud_rate = float(data.get("fraud_rate", 0.08))
+        except (TypeError, ValueError):
+            fraud_rate = 0.08
+
+        # Make sure the user actually has a card to charge
+        if not current_user.cards.filter_by(status='active').first():
+            return jsonify({
+                "error": "no active card available — issue one first",
+            }), 400
+
+        result = _get_live_manager().start(
+            current_app._get_current_object(),
+            user_id=current_user.id,
+            rate_per_min=rate,
+            fraud_rate=fraud_rate,
+        )
+        _publish("banking.live_stream", {
+            "user_id": current_user.id, "running": True, **result,
+        })
+        return jsonify({"success": True, **result})
+
+    @bp.post("/stream/stop")
+    @login_required
+    def stream_stop():
+        result = _get_live_manager().stop(current_user.id)
+        _publish("banking.live_stream", {
+            "user_id": current_user.id, "running": False, **result,
+        })
+        return jsonify({"success": True, **result})
 
     return bp
 
