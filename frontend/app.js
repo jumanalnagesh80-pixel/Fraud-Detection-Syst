@@ -293,10 +293,83 @@ function setStatus(connected) {
   const text = document.getElementById('status-text');
   if (connected) {
     pill.classList.remove('disconnected');
-    text.textContent = 'Live · monitoring';
+    text.textContent = streamConnected ? 'Live · streaming' : 'Live · monitoring';
   } else {
     pill.classList.add('disconnected');
     text.textContent = 'Disconnected';
+  }
+}
+
+// ============================================================
+// REAL-TIME SSE STREAM
+// ============================================================
+let streamConnected = false;
+let streamSource = null;
+let refreshTimer = null;
+
+function debouncedRefresh() {
+  // Coalesce bursts of events into a single refresh ~150ms later.
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(() => { refresh(); loadGeoData(); }, 150);
+}
+
+function connectStream() {
+  if (typeof EventSource === 'undefined') return;
+  try {
+    streamSource = new EventSource('/api/stream');
+
+    streamSource.addEventListener('connected', () => {
+      streamConnected = true;
+      setStatus(true);
+    });
+
+    streamSource.addEventListener('transaction.scored', () => {
+      debouncedRefresh();
+    });
+
+    streamSource.addEventListener('banking.payment', (e) => {
+      debouncedRefresh();
+      try {
+        const msg = JSON.parse(e.data);
+        const txn = msg.data?.transaction;
+        if (txn) {
+          const decision = txn.decision || 'approved';
+          const tone = decision === 'approved' ? 'success'
+                     : decision === 'declined' ? 'error' : 'warning';
+          toast(
+            `${decision.toUpperCase()}: $${Number(txn.amount).toFixed(2)} at ${txn.merchant_name || 'merchant'}`,
+            tone
+          );
+        }
+      } catch (_) {}
+    });
+
+    streamSource.addEventListener('transaction.alert', (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        const a = msg.data || {};
+        const reason = (a.reasons && a.reasons[0]) || 'High-risk transaction';
+        const tone = a.risk_level === 'critical' ? 'error' : 'warning';
+        toast(`${(a.risk_level||'').toUpperCase()}: ${reason}`, tone);
+      } catch (_) {}
+      debouncedRefresh();
+    });
+
+    streamSource.addEventListener('card.blocked', (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        const d = msg.data || {};
+        toast(`Card **** ${d.last4} auto-blocked due to fraud`, 'error');
+      } catch (_) {}
+    });
+
+    streamSource.addEventListener('error', () => {
+      streamConnected = false;
+      // EventSource will auto-reconnect; just reflect status.
+      setStatus(false);
+    });
+  } catch (_) {
+    streamConnected = false;
   }
 }
 
@@ -629,6 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
   refresh();
   loadGeoData();
   loadNotifications();
+  connectStream();
   setInterval(refresh, POLL_MS);
   setInterval(loadGeoData, POLL_MS * 2);
   setInterval(loadNotifications, POLL_MS);

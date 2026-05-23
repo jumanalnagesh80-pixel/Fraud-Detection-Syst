@@ -209,6 +209,18 @@ def api_register():
     db.session.add(user)
     db.session.commit()
     
+    # Issue a starter checking account + debit card so the user can
+    # start transacting immediately.
+    try:
+        from src.banking import seed_user_banking
+        seed_user_banking(user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # Don't fail registration if banking seed fails — the user can
+        # be re-seeded on first banking-page visit.
+        print(f"Banking seed failed for {user.username}: {e}")
+    
     log_audit(
         user_id=user.id,
         username=user.username,

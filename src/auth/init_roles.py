@@ -152,3 +152,21 @@ def ensure_user_columns():
         except Exception:
             # Column already exists — that's fine
             db.session.rollback()
+
+    # also patch transaction_records for the new banking links
+    txn_columns = [
+        ('user_id',          'INTEGER'),
+        ('bank_account_id',  'INTEGER'),
+        ('card_id',          'INTEGER'),
+        ('merchant_name',    'VARCHAR(120)'),
+        ('currency',         'VARCHAR(10) DEFAULT "USD"'),
+    ]
+    for name, sql_type in txn_columns:
+        try:
+            db.session.execute(text(
+                f'ALTER TABLE transaction_records ADD COLUMN {name} {sql_type}'
+            ))
+            db.session.commit()
+            print(f"Added missing column: transaction_records.{name}")
+        except Exception:
+            db.session.rollback()
