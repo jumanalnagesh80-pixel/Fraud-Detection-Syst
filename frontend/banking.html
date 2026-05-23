@@ -324,12 +324,51 @@
           <h3 class="card-title">💳 Cards</h3>
           <p class="card-sub">Manage your debit and credit cards</p>
         </div>
-        <button class="btn btn-primary" id="btn-new-card">+ Issue Card</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost" id="btn-link-card">🔗 Link Real Card</button>
+          <button class="btn btn-primary" id="btn-new-card">+ Issue Card</button>
+        </div>
       </div>
       <div id="cards-grid" class="card-grid">
         <div class="empty-state">Loading cards…</div>
       </div>
     </section>
+
+    <!-- Import Real Bank Statement -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">📥 Import Real Bank Statement</h3>
+          <p class="card-sub">
+            Drop a CSV from your bank — every transaction gets scored by the
+            fraud engine. <strong>Read-only analysis only</strong> — we
+            never see your card number and we cannot block real payments.
+          </p>
+        </div>
+      </div>
+
+      <form id="import-form" class="pay-form" enctype="multipart/form-data">
+        <div class="field col-wide">
+          <label>Bank statement CSV</label>
+          <input type="file" id="import-file" name="file" accept=".csv,text/csv" required />
+          <div style="font-size:11.5px; color:var(--text-mute); margin-top:4px;">
+            Most banks let you export a CSV: Chase, BofA, Wells Fargo, Capital One,
+            HDFC, ICICI, SBI, Axis, etc. Max 5 MB.
+          </div>
+        </div>
+        <div class="field">
+          <label>Tied to card (optional)</label>
+          <select id="import-card" name="card_id">
+            <option value="">— any card —</option>
+          </select>
+        </div>
+        <div class="field field-action">
+          <button type="submit" class="btn btn-primary">Import & Score</button>
+        </div>
+      </form>
+      <div id="import-result"></div>
+    </section>
+
 
     <!-- Live Mode -->
     <section class="card">
@@ -467,6 +506,61 @@
       <div style="display:flex; gap:8px; margin-top:14px;">
         <button class="btn btn-ghost" id="btn-copy-card">Copy number</button>
         <button class="btn btn-primary" id="btn-close-card-modal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link real card modal -->
+  <div class="modal-backdrop" id="modal-link-card">
+    <div class="modal" style="max-width: 480px;">
+      <h3>🔗 Link your real card</h3>
+      <p>
+        Enter <strong>only the last 4 digits</strong> and basic details.
+        We never ask for the full card number or CVV.
+      </p>
+      <form id="link-card-form" class="pay-form">
+        <div class="field">
+          <label>Brand</label>
+          <select id="link-brand" required>
+            <option value="visa">Visa</option>
+            <option value="mastercard">Mastercard</option>
+            <option value="amex">American Express</option>
+            <option value="discover">Discover</option>
+            <option value="rupay">RuPay</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select id="link-type">
+            <option value="debit">Debit</option>
+            <option value="credit">Credit</option>
+            <option value="prepaid">Prepaid</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Last 4 digits</label>
+          <input type="text" id="link-last4" inputmode="numeric" pattern="\d{4}"
+                 maxlength="4" minlength="4" placeholder="4242" required />
+        </div>
+        <div class="field">
+          <label>Expiry (MM / YYYY)</label>
+          <div style="display:flex; gap:6px;">
+            <input type="number" id="link-month" min="1" max="12" placeholder="MM" required style="width:30%;" />
+            <input type="number" id="link-year" min="2025" max="2045" placeholder="YYYY" required style="flex:1;" />
+          </div>
+        </div>
+        <div class="field col-wide">
+          <label>Nickname</label>
+          <input type="text" id="link-nickname" placeholder="My HDFC Debit" maxlength="80" />
+        </div>
+        <div class="field field-action" style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" id="link-card-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Link Card</button>
+        </div>
+      </form>
+      <div class="reveal-warning" style="margin-top:14px;">
+        🔒 We will <strong>not</strong> store your full card number, CVV, or PIN.
+        Linking is only used to associate imported transactions with this card.
       </div>
     </div>
   </div>
@@ -671,6 +765,14 @@
       sel.innerHTML = usable.map(c =>
         `<option value="${c.id}">${escapeHtml(c.brand.toUpperCase())} ${escapeHtml(c.card_number_masked)} (${escapeHtml(c.nickname || c.card_type)})</option>`
       ).join('');
+      // Mirror into the import-statement card selector
+      const imp = $('import-card');
+      if (imp) {
+        imp.innerHTML = '<option value="">— any card —</option>' +
+          STATE.cards.map(c =>
+            `<option value="${c.id}">${escapeHtml(c.brand.toUpperCase())} **** ${escapeHtml(c.last4)} (${escapeHtml(c.nickname || c.card_type)})</option>`
+          ).join('');
+      }
     }
 
     document.getElementById('pay-form').addEventListener('submit', async (e) => {
@@ -905,6 +1007,150 @@
     });
 
     setInterval(loadLiveStatus, 5000);
+
+    // ---------- LINK REAL CARD ----------
+    $('btn-link-card').addEventListener('click', () => {
+      // Default expiry-year to current year + 4
+      const year = new Date().getFullYear() + 4;
+      $('link-year').value = year;
+      $('modal-link-card').classList.add('open');
+    });
+    $('link-card-cancel').addEventListener('click', () => {
+      $('modal-link-card').classList.remove('open');
+    });
+    $('link-card-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const last4 = $('link-last4').value.trim();
+      if (!/^\d{4}$/.test(last4)) {
+        toast('Enter exactly 4 digits', 'error'); return;
+      }
+      const body = {
+        brand:        $('link-brand').value,
+        card_type:    $('link-type').value,
+        last4,
+        expiry_month: Number($('link-month').value),
+        expiry_year:  Number($('link-year').value),
+        nickname:     $('link-nickname').value || undefined,
+      };
+      try {
+        const r = await fetch('/api/banking/cards/link', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const d = await r.json();
+        if (!r.ok) { toast(d.error || 'Failed to link card', 'error'); return; }
+        toast(d.message || 'Card linked', 'success');
+        $('modal-link-card').classList.remove('open');
+        e.target.reset();
+        loadOverview();
+      } catch (err) { toast('Network error', 'error'); }
+    });
+
+    // ---------- IMPORT BANK STATEMENT ----------
+    $('import-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = $('import-file').files[0];
+      if (!file) { toast('Pick a CSV file first', 'error'); return; }
+      if (file.size > 5 * 1024 * 1024) {
+        toast('File is larger than 5 MB — split it first', 'error'); return;
+      }
+
+      const fd = new FormData();
+      fd.append('file', file);
+      const cardId = $('import-card').value;
+      if (cardId) fd.append('card_id', cardId);
+
+      const result = $('import-result');
+      result.innerHTML = `<div class="empty-state">Importing & scoring…</div>`;
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      try {
+        const r = await fetch('/api/banking/import/statement', {
+          method: 'POST', body: fd,
+        });
+        const d = await r.json();
+        if (!r.ok) {
+          result.innerHTML =
+            `<div class="pay-result-card declined" style="margin-top:14px;">
+              <div class="pay-result-icon">⚠️</div>
+              <div class="pay-result-meta">
+                <div class="pay-result-title">Import failed</div>
+                <div class="pay-result-sub">${escapeHtml(d.error || 'unknown error')}</div>
+              </div>
+            </div>`;
+          return;
+        }
+        renderImportSummary(d.summary);
+        toast(`Imported ${d.summary.imported} transactions · `
+              + `${d.summary.fraud_detected} flagged`, 'success');
+        e.target.reset();
+        loadOverview();
+      } catch (err) {
+        toast('Network error', 'error');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    function renderImportSummary(s) {
+      const out = $('import-result');
+      const totalAmt = fmt$(s.total_amount);
+      const tone = s.fraud_detected > 0 ? 'review' : 'approve';
+
+      const rows = (s.imported_transactions || []).slice(0, 30).map(t => {
+        const decision = t.decision || 'approved';
+        const decisionTone = decision === 'approved' ? 'approve'
+          : decision === 'declined' ? 'declined' : 'review';
+        return `<tr>
+          <td>${escapeHtml(new Date(t.processed_at).toLocaleDateString())}</td>
+          <td>${escapeHtml(t.merchant_name || '—')}</td>
+          <td>${fmt$(t.amount, t.currency || 'USD')}</td>
+          <td>${escapeHtml(t.merchant_category || '—')}</td>
+          <td><span class="badge badge-${escapeHtml(t.risk_level || 'low')}"><i></i>${escapeHtml(t.risk_level || 'low')}</span></td>
+          <td><span class="badge badge-${decisionTone}">${escapeHtml(decision)}</span></td>
+        </tr>`;
+      }).join('');
+
+      const errors = (s.errors || []).length
+        ? `<details style="margin-top:10px; font-size:12px; color:var(--text-mute);">
+             <summary>${s.errors.length} parse warning(s)</summary>
+             <ul>${s.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul>
+           </details>`
+        : '';
+
+      out.innerHTML = `
+        <div class="pay-result-card ${tone}" style="margin-top:14px; flex-direction:column; align-items:stretch;">
+          <div style="display:flex; gap:18px; align-items:center;">
+            <div class="pay-result-icon">📊</div>
+            <div class="pay-result-meta">
+              <div class="pay-result-title">Import complete</div>
+              <div class="pay-result-sub">
+                Imported <strong>${s.imported}</strong> of ${s.rows_total} rows ·
+                Total spent <strong>${totalAmt}</strong> ·
+                <span style="color:${s.fraud_detected ? 'var(--red)' : 'inherit'};">
+                  <strong>${s.fraud_detected}</strong> flagged as fraud (high/critical)
+                </span>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                <span class="badge badge-low"><i></i>${s.by_risk.low || 0} low</span>
+                <span class="badge badge-medium"><i></i>${s.by_risk.medium || 0} medium</span>
+                <span class="badge badge-high"><i></i>${s.by_risk.high || 0} high</span>
+                <span class="badge badge-critical"><i></i>${s.by_risk.critical || 0} critical</span>
+              </div>
+            </div>
+          </div>
+          ${rows ? `
+            <div class="table-wrap" style="margin-top:14px; max-height:340px;">
+              <table class="table">
+                <thead><tr><th>Date</th><th>Merchant</th><th>Amount</th>
+                  <th>Category</th><th>Risk</th><th>Decision</th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          ` : ''}
+          ${errors}
+        </div>`;
+    }
 
     (async function init() {
       await loadCurrentUser();

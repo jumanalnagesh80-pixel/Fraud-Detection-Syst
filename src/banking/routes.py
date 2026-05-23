@@ -22,6 +22,7 @@ Routes (all require an authenticated session unless noted):
 from __future__ import annotations
 
 import logging
+import re
 import time
 import uuid
 from dataclasses import asdict
@@ -538,6 +539,168 @@ def create_banking_blueprint() -> Blueprint:
             "user_id": current_user.id, "running": False, **result,
         })
         return jsonify({"success": True, **result})
+
+    # ==================================================================
+    # LINK A REAL CARD (safe — last4 only, never the full PAN/CVV)
+    # ==================================================================
+    @bp.post("/cards/link")
+    @login_required
+    def link_real_card():
+        """Link a real-world card by entering ONLY last4, brand, expiry.
+
+        Never accepts a full card number or CVV. The resulting Card row
+        has ``pan_hash=NULL`` to mark it as externally owned: we use it
+        only to associate imported transactions and never to authorize
+        a payment.
+        """
+        data = request.get_json(silent=True) or {}
+        last4 = str(data.get("last4") or "").strip()
+        if not re.fullmatch(r"\d{4}", last4):
+            return jsonify({"error": "last4 must be exactly 4 digits"}), 400
+
+        brand = (data.get("brand") or "visa").lower()
+        if brand not in ("visa", "mastercard", "amex", "discover", "rupay"):
+            return jsonify({"error": "brand must be visa/mastercard/amex/discover/rupay"}), 400
+
+        try:
+            month = int(data.get("expiry_month"))
+            year = int(data.get("expiry_year"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "expiry_month and expiry_year are required integers"}), 400
+        if not (1 <= month <= 12):
+            return jsonify({"error": "expiry_month must be 1-12"}), 400
+        if year < 100:
+            year += 2000   # accept "27" → 2027
+        if year < datetime.utcnow().year or year > datetime.utcnow().year + 20:
+            return jsonify({"error": "expiry_year is out of range"}), 400
+
+        # Resolve account: explicit account_id, else user's primary
+        account_id = data.get("account_id")
+        account = (_get_owned_account(account_id) if account_id
+                   else current_user.bank_accounts.first())
+        if account is None:
+            return jsonify({"error": "no account available — open one first"}), 400
+        if account.status != 'active':
+            return jsonify({"error": "account is not active"}), 400
+
+        card_type = (data.get("card_type") or "debit").lower()
+        if card_type not in ("debit", "credit", "prepaid"):
+            return jsonify({"error": "card_type must be debit/credit/prepaid"}), 400
+
+        nickname = (data.get("nickname") or
+                    f"My {brand.title()} {card_type.title()}")[:80]
+        cardholder = (data.get("cardholder_name") or current_user.full_name
+                      or current_user.username or "Cardholder")
+
+        # Reject duplicate (same brand + last4 already linked by this user)
+        existing = current_user.cards.filter_by(brand=brand, last4=last4).first()
+        if existing:
+            return jsonify({
+                "error": f"A {brand.title()} card ending in {last4} is already linked",
+            }), 409
+
+        card = Card(
+            user_id=current_user.id,
+            account_id=account.id,
+            card_number_masked=f"**** **** **** {last4}",
+            last4=last4,
+            pan_hash=None,                  # we never see the real PAN
+            cvv_hash=None,                  # we never see the CVV either
+            expiry_month=month,
+            expiry_year=year,
+            card_type=card_type,
+            brand=brand,
+            cardholder_name=cardholder.upper()[:120],
+            nickname=nickname,
+            daily_limit=float(data.get("daily_limit") or DEFAULT_DAILY_CARD_LIMIT),
+            international_enabled=bool(data.get("international_enabled", True)),
+            contactless_enabled=bool(data.get("contactless_enabled", True)),
+            online_enabled=bool(data.get("online_enabled", True)),
+            status='active',
+        )
+        db.session.add(card)
+        db.session.commit()
+
+        _publish("banking.card_linked", {
+            "card": card.to_dict(), "user_id": current_user.id,
+        })
+        return jsonify({
+            "success": True,
+            "card": card.to_dict(),
+            "message": f"{brand.title()} **** {last4} linked. Use 'Import Statement' "
+                       "to score real transactions on this card.",
+        }), 201
+
+    # ==================================================================
+    # IMPORT REAL BANK STATEMENT (CSV)
+    # ==================================================================
+    @bp.post("/import/statement")
+    @login_required
+    def import_statement():
+        """Upload a bank-statement CSV and run fraud detection on every row.
+
+        Accepts either:
+          * multipart/form-data with a ``file`` part (preferred), or
+          * application/json with ``csv_text`` (handy for tests/curl)
+
+        Optional form/JSON fields:
+          * ``card_id`` — bind imported rows to a specific linked card
+          * ``account_id`` — which account owns the rows (default: primary)
+        """
+        from .importer import import_statement_csv, MAX_ROWS_PER_IMPORT
+
+        # Work out which account/card to bind to
+        if request.content_type and "multipart/form-data" in request.content_type:
+            account_id = request.form.get("account_id", type=int)
+            card_id = request.form.get("card_id", type=int)
+            f = request.files.get("file")
+            if f is None:
+                return jsonify({"error": "missing 'file' upload"}), 400
+            try:
+                csv_text = f.read().decode("utf-8", errors="replace")
+            except Exception as exc:
+                return jsonify({"error": f"could not read file: {exc}"}), 400
+        else:
+            data = request.get_json(silent=True) or {}
+            account_id = data.get("account_id")
+            card_id = data.get("card_id")
+            csv_text = data.get("csv_text") or ""
+
+        if len(csv_text) > 5 * 1024 * 1024:
+            return jsonify({
+                "error": "file too large (max 5 MB). Split your statement.",
+            }), 413
+        if not csv_text.strip():
+            return jsonify({"error": "CSV is empty"}), 400
+
+        account = (_get_owned_account(account_id) if account_id
+                   else current_user.bank_accounts.first())
+        if account is None:
+            return jsonify({"error": "no account available — open one first"}), 400
+
+        card = _get_owned_card(card_id) if card_id else None
+        if card_id and card is None:
+            return jsonify({"error": "card not found"}), 404
+
+        try:
+            summary = import_statement_csv(
+                app=current_app._get_current_object(),
+                user_id=current_user.id,
+                account=account,
+                card=card,
+                csv_text=csv_text,
+            )
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except Exception as exc:                       # pragma: no cover
+            log.exception("import failed")
+            return jsonify({"error": f"import failed: {exc}"}), 500
+
+        return jsonify({
+            "success": True,
+            "summary": summary,
+            "max_rows_per_import": MAX_ROWS_PER_IMPORT,
+        })
 
     return bp
 
