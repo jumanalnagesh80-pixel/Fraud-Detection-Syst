@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sentinel Fraud Detection System — Detailed Project Report</title>
+<style>
+  @page { size: A4; margin: 1.5cm; @bottom-center { content: "Sentinel · Fraud Detection · Page " counter(page) " of " counter(pages); font-size: 9px; color: #94a3b8; } }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.55; color: #1f2937; font-size: 12.5px; }
+  h1, h2, h3, h4, h5 { color: #0f172a; page-break-after: avoid; }
+  h1 { font-size: 26px; margin: 14px 0 8px; }
+  h2 { font-size: 19px; margin: 22px 0 10px; padding: 6px 10px; background: #1d4ed8; color: white; border-radius: 4px; page-break-before: always; }
+  h2:first-of-type { page-break-before: avoid; }
+  h3 { font-size: 15px; margin: 16px 0 6px; color: #1d4ed8; border-bottom: 1.5px solid #dbeafe; padding-bottom: 3px; }
+  h4 { font-size: 13px; margin: 12px 0 4px; color: #1e40af; }
+  h5 { font-size: 12px; margin: 8px 0 3px; color: #374151; }
+  p, li { font-size: 12.5px; margin: 4px 0; }
+  ul, ol { margin: 4px 0 8px 22px; }
+  li { margin: 2px 0; }
+  code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 11px; color: #be185d; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 10px 12px; border-radius: 5px; font-family: 'Courier New', monospace; font-size: 10.5px; line-height: 1.4; margin: 8px 0; white-space: pre-wrap; page-break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 11.5px; page-break-inside: avoid; }
+  th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #1d4ed8; color: white; font-weight: 600; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .cover { text-align: center; padding: 100px 30px; background: linear-gradient(135deg, #0c1e4f 0%, #1e3a8a 50%, #6d28d9 100%); color: white; page-break-after: always; height: 25cm; display: flex; flex-direction: column; justify-content: center; }
+  .cover h1 { color: white; font-size: 48px; margin-bottom: 6px; letter-spacing: 2px; }
+  .cover .subtitle { font-size: 20px; opacity: 0.95; margin-bottom: 50px; font-weight: 300; }
+  .cover .tagline { font-size: 14px; opacity: 0.7; margin-top: -40px; margin-bottom: 60px; font-style: italic; }
+  .cover .meta { font-size: 13px; opacity: 0.85; margin-top: 50px; }
+  .cover .badge { display: inline-block; padding: 5px 12px; border-radius: 16px; background: rgba(255,255,255,0.18); margin: 3px; font-size: 11.5px; }
+  .callout { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 8px 12px; border-radius: 3px; margin: 8px 0; font-size: 11.5px; page-break-inside: avoid; }
+  .callout.warn { background: #fef3c7; border-left-color: #f59e0b; }
+  .callout.tip { background: #ecfdf5; border-left-color: #10b981; }
+  .callout.danger { background: #fee2e2; border-left-color: #dc2626; }
+  .toc { background: #f8fafc; padding: 14px 20px; border: 1px solid #e2e8f0; border-radius: 6px; }
+  .toc h3 { border: none; margin-top: 0; }
+  .toc ol { margin-left: 20px; columns: 1; }
+  .toc a { color: #1d4ed8; text-decoration: none; font-size: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; page-break-inside: avoid; }
+  .card h4 { margin-top: 0; color: #1e40af; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 9px; background: #dbeafe; color: #1e40af; font-size: 10.5px; margin: 0 2px; font-weight: 600; }
+  .qa { margin: 10px 0; padding: 8px 12px; background: #fafafa; border-left: 3px solid #6366f1; border-radius: 3px; page-break-inside: avoid; }
+  .qa .q { font-weight: 700; color: #4338ca; margin-bottom: 4px; }
+  .qa .a { color: #374151; }
+  svg { display: block; margin: 10px auto; max-width: 100%; }
+  .figure { text-align: center; margin: 14px 0; page-break-inside: avoid; }
+  .figure-title { font-size: 11px; font-style: italic; color: #64748b; margin-top: 4px; }
+  footer { margin-top: 28px; padding-top: 12px; border-top: 1px solid #cbd5e1; font-size: 10.5px; color: #64748b; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- =================== COVER =================== -->
+<div class="cover">
+  <h1>SENTINEL</h1>
+  <div class="subtitle">Real-Time Fraud Detection System</div>
+  <div class="tagline">Catching fraud the moment it happens — with Machine Learning &amp; Rules</div>
+  <div style="margin-top: 30px;">
+    <span class="badge">Python 3.11</span>
+    <span class="badge">Flask</span>
+    <span class="badge">SQLAlchemy</span>
+    <span class="badge">scikit-learn</span>
+    <span class="badge">SQLite / PostgreSQL</span>
+    <span class="badge">HTML5 + CSS3 + JS</span>
+    <span class="badge">Chart.js</span>
+    <span class="badge">face-api.js</span>
+  </div>
+  <div class="meta">
+    <strong style="font-size:16px;">Detailed Project Report</strong><br><br>
+    Repository: jumanalnagesh80-pixel/Fraud-Detection-Syst<br>
+    Document version 2.0 &nbsp;·&nbsp; May 2026<br>
+    Includes DFD Levels 0/1/2, full Technical Stack, ML Models, Real-Time Flow, Future Scope, Q&amp;A
+  </div>
+</div>
+
+<!-- =================== TOC =================== -->
+<h2>Table of Contents</h2>
+<div class="toc">
+  <ol>
+    <li>Executive Summary</li>
+    <li>Project Overview</li>
+    <li>Problem Statement &amp; Objectives</li>
+    <li>Complete Technical Stack (with versions)</li>
+    <li>System Architecture</li>
+    <li><strong>Data Flow Diagrams (Level 0, 1, 2)</strong></li>
+    <li>Module-by-Module Breakdown</li>
+    <li>Database Design (ER Diagram + 6 Tables)</li>
+    <li>Machine Learning — Detailed
+      <ol style="margin-top:2px;">
+        <li>What is ML</li>
+        <li>The ensemble model</li>
+        <li>Algorithms: Random Forest, Gradient Boosting, Logistic Regression</li>
+        <li>Feature engineering</li>
+        <li>Training pipeline</li>
+        <li>Performance metrics</li>
+      </ol>
+    </li>
+    <li>The Rule Engine</li>
+    <li>How Fraud Is Detected — Real-Time Sequence</li>
+    <li>Authentication, Authorization &amp; Security</li>
+    <li>REST API Reference</li>
+    <li>Frontend &amp; UI/UX</li>
+    <li>Deployment &amp; DevOps</li>
+    <li>How To Use The Project (step-by-step)</li>
+    <li><strong>Future Scope &amp; Real-World Use Cases</strong></li>
+    <li><strong>Project Q&amp;A — viva / interview style</strong></li>
+    <li>Conclusion</li>
+  </ol>
+</div>
+
+<!-- =================== 1. EXEC SUMMARY =================== -->
+<h2>1. Executive Summary</h2>
+<p><strong>Sentinel</strong> is an end-to-end real-time fraud detection platform built with Python, Flask, scikit-learn and a modern web frontend. It ingests transactions, scores them with a hybrid <strong>Machine Learning ensemble + explainable rule engine</strong>, decides whether to <em>approve / review / decline</em> them, and surfaces the decision in a live web dashboard for analysts and admins.</p>
+<p>The system delivers four key things:</p>
+<ol>
+  <li><strong>Real-time scoring</strong> — every transaction scored in &lt;50 ms with risk level and explanation.</li>
+  <li><strong>Hybrid intelligence</strong> — the ML model catches subtle fraud patterns; the rule engine provides auditor-friendly reasons.</li>
+  <li><strong>Operational dashboard</strong> — analysts watch a live feed, charts, alerts, and review queue.</li>
+  <li><strong>Compliance &amp; audit</strong> — every login, decision and admin change recorded in an immutable audit log.</li>
+</ol>
+
+<!-- =================== 2. OVERVIEW =================== -->
+<h2>2. Project Overview</h2>
+<h3>2.1 What is the project?</h3>
+<p>Sentinel simulates the kind of fraud-detection system that Visa, Mastercard, PayPal, Stripe and major banks operate. It is a working software product that:</p>
+<ul>
+  <li>Accepts financial transactions through a REST API.</li>
+  <li>Runs each one through an ML model trained on historical fraud data.</li>
+  <li>Runs each one through a rule engine of hand-written fraud heuristics.</li>
+  <li>Combines the two scores, makes a decision, and stores everything.</li>
+  <li>Streams the result to a browser dashboard live (Server-Sent Events).</li>
+  <li>Lets human analysts review, approve, or escalate flagged transactions.</li>
+</ul>
+
+<h3>2.2 Who uses it?</h3>
+<table>
+  <tr><th>Role</th><th>Goal</th><th>Permissions</th></tr>
+  <tr><td><strong>Admin</strong></td><td>Configure system, manage users &amp; roles</td><td>Full access</td></tr>
+  <tr><td><strong>Analyst</strong></td><td>Review flagged transactions, retrain model</td><td>View + review + retrain</td></tr>
+  <tr><td><strong>Viewer</strong></td><td>Read-only dashboard access</td><td>View only</td></tr>
+  <tr><td><strong>End user</strong></td><td>Owns bank accounts/cards, makes payments</td><td>Personal account only</td></tr>
+</table>
+
+<!-- =================== 3. PROBLEM =================== -->
+<h2>3. Problem Statement &amp; Objectives</h2>
+<h3>3.1 The business problem</h3>
+<p>Global card fraud losses exceeded <strong>USD 33 billion in 2024</strong>. Pure rule-based engines cannot keep up with new attack patterns; pure black-box ML models fail audit/regulatory review. A hybrid system is needed.</p>
+
+<h3>3.2 Project objectives</h3>
+<ol>
+  <li>Score any transaction in under 50 ms.</li>
+  <li>Achieve ≥ 0.95 ROC-AUC on synthetic fraud data.</li>
+  <li>Provide a human-readable reason for every flagged transaction.</li>
+  <li>Maintain a tamper-evident audit log for compliance.</li>
+  <li>Serve 50+ concurrent dashboard users on commodity hardware.</li>
+  <li>Be deployable as a single Docker container.</li>
+</ol>
+
+<!-- =================== 4. TECH STACK =================== -->
+<h2>4. Complete Technical Stack</h2>
+
+<h3>4.1 Frontend (the part the user sees in the browser)</h3>
+<table>
+  <tr><th>Layer</th><th>Technology</th><th>Version</th><th>Purpose</th></tr>
+  <tr><td>Markup</td><td>HTML5</td><td>—</td><td>Page structure for dashboard, login, banking, admin pages.</td></tr>
+  <tr><td>Styling</td><td>CSS3 (custom + glass-morphism)</td><td>—</td><td>Modern UI: dark theme, gradients, blur, responsive grids.</td></tr>
+  <tr><td>Logic</td><td>Vanilla JavaScript (ES2020)</td><td>—</td><td>Calls REST APIs, updates DOM, handles forms.</td></tr>
+  <tr><td>Charts</td><td>Chart.js</td><td>4.4.1</td><td>Risk distribution, hourly volume, KPI bars.</td></tr>
+  <tr><td>Live updates</td><td>Server-Sent Events (SSE)</td><td>HTML5 native</td><td>Push new transactions to dashboard without polling.</td></tr>
+  <tr><td>Face login</td><td>face-api.js</td><td>0.22</td><td>Captures 128-dim face embedding from webcam.</td></tr>
+  <tr><td>Fonts</td><td>Inter, JetBrains Mono</td><td>Google Fonts</td><td>Typography.</td></tr>
+</table>
+
+<h3>4.2 Backend (server-side)</h3>
+<table>
+  <tr><th>Component</th><th>Technology</th><th>Version</th><th>Purpose</th></tr>
+  <tr><td>Language</td><td>Python</td><td>3.11</td><td>Main backend language.</td></tr>
+  <tr><td>Web framework</td><td>Flask</td><td>3.x</td><td>Routes HTTP requests, renders templates.</td></tr>
+  <tr><td>Sessions</td><td>Flask-Login</td><td>0.6.x</td><td>Tracks who is logged in via cookies.</td></tr>
+  <tr><td>JWT auth</td><td>Flask-JWT-Extended</td><td>4.x</td><td>Stateless tokens for API clients.</td></tr>
+  <tr><td>CORS</td><td>Flask-CORS</td><td>4.x</td><td>Cross-origin requests from frontend.</td></tr>
+  <tr><td>Password hashing</td><td>Werkzeug (scrypt)</td><td>3.x</td><td>Industry-grade password hashing.</td></tr>
+  <tr><td>Production server</td><td>Gunicorn</td><td>21.x</td><td>WSGI server for production.</td></tr>
+  <tr><td>Container</td><td>Docker + docker-compose</td><td>—</td><td>Reproducible deployment.</td></tr>
+</table>
+
+<h3>4.3 Database</h3>
+<table>
+  <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+  <tr><td>Database engine</td><td>SQLite (file: <code>fraud_detection.db</code>)</td><td>Default storage. Zero-config. Swappable to PostgreSQL via DATABASE_URL.</td></tr>
+  <tr><td>ORM</td><td>SQLAlchemy 2.x</td><td>Pythonic abstraction over SQL — write classes, get tables.</td></tr>
+  <tr><td>Migrations</td><td>Flask-Migrate (Alembic)</td><td>Track schema changes like Git for the DB.</td></tr>
+  <tr><td>Connection pool</td><td>SQLAlchemy built-in</td><td>Reuses DB connections for performance.</td></tr>
+</table>
+
+<h3>4.4 Machine Learning Stack</h3>
+<table>
+  <tr><th>Component</th><th>Technology</th><th>Version</th><th>Purpose</th></tr>
+  <tr><td>Core ML library</td><td>scikit-learn</td><td>1.4.x</td><td>RandomForest, GradientBoosting, LogisticRegression, VotingClassifier, metrics, train_test_split, StandardScaler.</td></tr>
+  <tr><td>Data manipulation</td><td>pandas</td><td>2.x</td><td>DataFrames for transaction tables.</td></tr>
+  <tr><td>Numerical compute</td><td>NumPy</td><td>1.26.x</td><td>Underlying array math.</td></tr>
+  <tr><td>Model persistence</td><td>pickle / joblib</td><td>std-lib</td><td>Save/load <code>fraud_model.pkl</code>.</td></tr>
+  <tr><td>Synthetic data</td><td>Custom generator (<code>data_loader.py</code>)</td><td>—</td><td>10,000+ realistic synthetic transactions with 5% fraud rate.</td></tr>
+</table>
+
+<h3>4.5 Real-Time Layer</h3>
+<table>
+  <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+  <tr><td>Event bus</td><td>In-process queue (<code>event_bus.py</code>)</td><td>Pub-sub for transaction events.</td></tr>
+  <tr><td>Sliding-window monitor</td><td><code>monitor.py</code> (deque size 500)</td><td>Tracks last N transactions for live KPIs.</td></tr>
+  <tr><td>Alert manager</td><td><code>alerts.py</code> (deque size 200)</td><td>Stores recent alerts for the UI.</td></tr>
+  <tr><td>SSE channel</td><td><code>sse_routes.py</code></td><td>Streams events to browser without WebSockets.</td></tr>
+</table>
+
+<h3>4.6 DevOps &amp; Tooling</h3>
+<ul>
+  <li><strong>Git / GitHub</strong> — version control + collaboration.</li>
+  <li><strong>Dockerfile</strong> — production image with Python 3.11-slim base.</li>
+  <li><strong>docker-compose.yml</strong> — single-command local stack (app + optional Postgres).</li>
+  <li><strong>requirements.txt</strong> — pinned Python dependencies.</li>
+  <li><strong>setup_mac.sh</strong> — bootstrap script for macOS developers.</li>
+</ul>
+
+<!-- =================== 5. ARCHITECTURE =================== -->
+<h2>5. System Architecture</h2>
+<p>The system follows the classic <strong>3-tier architecture</strong>: Presentation (browser) → Application (Flask) → Data (SQLite + ML model file). The application layer is split into focused Flask blueprints for clean separation of concerns.</p>
+
+<div class="figure">
+<svg viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <!-- Browser Layer -->
+  <rect x="20" y="20" width="760" height="80" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2" rx="6"/>
+  <text x="400" y="42" text-anchor="middle" font-family="Helvetica" font-size="14" font-weight="bold" fill="#1e3a8a">PRESENTATION TIER — Browser</text>
+  <rect x="40" y="55" width="120" height="35" fill="white" stroke="#1d4ed8" rx="3"/>
+  <text x="100" y="77" text-anchor="middle" font-size="11" fill="#1e3a8a">index.html</text>
+  <rect x="170" y="55" width="120" height="35" fill="white" stroke="#1d4ed8" rx="3"/>
+  <text x="230" y="77" text-anchor="middle" font-size="11" fill="#1e3a8a">banking.html</text>
+  <rect x="300" y="55" width="120" height="35" fill="white" stroke="#1d4ed8" rx="3"/>
+  <text x="360" y="77" text-anchor="middle" font-size="11" fill="#1e3a8a">admin/dashboard</text>
+  <rect x="430" y="55" width="120" height="35" fill="white" stroke="#1d4ed8" rx="3"/>
+  <text x="490" y="77" text-anchor="middle" font-size="11" fill="#1e3a8a">login.html</text>
+  <rect x="560" y="55" width="200" height="35" fill="white" stroke="#1d4ed8" rx="3"/>
+  <text x="660" y="77" text-anchor="middle" font-size="11" fill="#1e3a8a">app.js + Chart.js + face-api</text>
+
+  <!-- Arrow -->
+  <line x1="400" y1="100" x2="400" y2="135" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="415" y="120" font-size="10" fill="#374151">HTTPS / REST / SSE</text>
+
+  <!-- Application Layer -->
+  <rect x="20" y="140" width="760" height="180" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/>
+  <text x="400" y="162" text-anchor="middle" font-family="Helvetica" font-size="14" font-weight="bold" fill="#92400e">APPLICATION TIER — Flask Backend</text>
+
+  <rect x="40" y="180" width="170" height="55" fill="white" stroke="#f59e0b" rx="3"/>
+  <text x="125" y="200" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">auth blueprint</text>
+  <text x="125" y="215" text-anchor="middle" font-size="10" fill="#374151">login / register</text>
+  <text x="125" y="228" text-anchor="middle" font-size="10" fill="#374151">RBAC decorators</text>
+
+  <rect x="225" y="180" width="170" height="55" fill="white" stroke="#f59e0b" rx="3"/>
+  <text x="310" y="200" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">api blueprint</text>
+  <text x="310" y="215" text-anchor="middle" font-size="10" fill="#374151">/transactions</text>
+  <text x="310" y="228" text-anchor="middle" font-size="10" fill="#374151">/metrics, SSE</text>
+
+  <rect x="410" y="180" width="170" height="55" fill="white" stroke="#f59e0b" rx="3"/>
+  <text x="495" y="200" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">admin blueprint</text>
+  <text x="495" y="215" text-anchor="middle" font-size="10" fill="#374151">user mgmt</text>
+  <text x="495" y="228" text-anchor="middle" font-size="10" fill="#374151">audit logs</text>
+
+  <rect x="595" y="180" width="170" height="55" fill="white" stroke="#f59e0b" rx="3"/>
+  <text x="680" y="200" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">banking blueprint</text>
+  <text x="680" y="215" text-anchor="middle" font-size="10" fill="#374151">accounts, cards</text>
+  <text x="680" y="228" text-anchor="middle" font-size="10" fill="#374151">transfers</text>
+
+  <rect x="40" y="245" width="350" height="55" fill="#fbbf24" stroke="#92400e" rx="3"/>
+  <text x="215" y="265" text-anchor="middle" font-size="11" font-weight="bold" fill="white">FraudModel (ML Ensemble)</text>
+  <text x="215" y="280" text-anchor="middle" font-size="10" fill="white">RF + GB + LR &nbsp;·&nbsp; Voting</text>
+  <text x="215" y="293" text-anchor="middle" font-size="10" fill="white">FeatureEngineer · scaler · predict_proba</text>
+
+  <rect x="410" y="245" width="355" height="55" fill="#fbbf24" stroke="#92400e" rx="3"/>
+  <text x="587" y="265" text-anchor="middle" font-size="11" font-weight="bold" fill="white">RuleEngine + Real-Time Layer</text>
+  <text x="587" y="280" text-anchor="middle" font-size="10" fill="white">5 rules · explainable scores</text>
+  <text x="587" y="293" text-anchor="middle" font-size="10" fill="white">EventBus · Monitor · AlertManager</text>
+
+  <!-- Arrows -->
+  <line x1="200" y1="320" x2="200" y2="360" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="600" y1="320" x2="600" y2="360" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Data Tier -->
+  <rect x="20" y="365" width="760" height="100" fill="#dcfce7" stroke="#15803d" stroke-width="2" rx="6"/>
+  <text x="400" y="387" text-anchor="middle" font-family="Helvetica" font-size="14" font-weight="bold" fill="#14532d">DATA TIER</text>
+
+  <rect x="40" y="400" width="350" height="50" fill="white" stroke="#15803d" rx="3"/>
+  <text x="215" y="420" text-anchor="middle" font-size="11" font-weight="bold" fill="#14532d">SQLite — fraud_detection.db</text>
+  <text x="215" y="438" text-anchor="middle" font-size="10" fill="#374151">users · roles · audit_logs · transactions · accounts · cards</text>
+
+  <rect x="410" y="400" width="355" height="50" fill="white" stroke="#15803d" rx="3"/>
+  <text x="587" y="420" text-anchor="middle" font-size="11" font-weight="bold" fill="#14532d">Filesystem</text>
+  <text x="587" y="438" text-anchor="middle" font-size="10" fill="#374151">fraud_model.pkl · synthetic CSVs · static assets</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#374151"/>
+    </marker>
+  </defs>
+</svg>
+<div class="figure-title">Figure 5.1 — 3-tier system architecture</div>
+</div>
+
+<!-- =================== 6. DFD =================== -->
+<h2>6. Data Flow Diagrams</h2>
+<p>Data Flow Diagrams (DFDs) are the standard way to describe how data moves through a system. We present three levels of detail, each zooming further in.</p>
+
+<h3>6.1 DFD Level 0 — Context Diagram</h3>
+<p>The whole system as a single bubble showing the external entities that interact with it.</p>
+
+<div class="figure">
+<svg viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <defs>
+    <marker id="arr0" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#1e3a8a"/>
+    </marker>
+  </defs>
+
+  <!-- External entities (rectangles) -->
+  <rect x="20" y="40" width="140" height="60" fill="#dbeafe" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="90" y="68" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e3a8a">END USER</text>
+  <text x="90" y="85" text-anchor="middle" font-size="10" fill="#374151">customer</text>
+
+  <rect x="20" y="260" width="140" height="60" fill="#dbeafe" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="90" y="288" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e3a8a">ANALYST</text>
+  <text x="90" y="305" text-anchor="middle" font-size="10" fill="#374151">fraud reviewer</text>
+
+  <rect x="540" y="40" width="140" height="60" fill="#dbeafe" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="610" y="68" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e3a8a">PAYMENT</text>
+  <text x="610" y="85" text-anchor="middle" font-size="10" fill="#374151">gateway / simulator</text>
+
+  <rect x="540" y="260" width="140" height="60" fill="#dbeafe" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="610" y="288" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e3a8a">ADMIN</text>
+  <text x="610" y="305" text-anchor="middle" font-size="10" fill="#374151">system manager</text>
+
+  <!-- The system: a circle in the middle -->
+  <ellipse cx="350" cy="180" rx="120" ry="70" fill="#fbbf24" stroke="#92400e" stroke-width="3"/>
+  <text x="350" y="170" text-anchor="middle" font-size="16" font-weight="bold" fill="#7c2d12">SENTINEL</text>
+  <text x="350" y="190" text-anchor="middle" font-size="13" fill="#7c2d12">Fraud Detection</text>
+  <text x="350" y="208" text-anchor="middle" font-size="12" fill="#7c2d12">System</text>
+
+  <!-- Flows -->
+  <line x1="160" y1="70" x2="232" y2="135" stroke="#1e3a8a" stroke-width="2" marker-end="url(#arr0)"/>
+  <text x="180" y="100" font-size="10" fill="#1e3a8a">login + transactions</text>
+
+  <line x1="232" y1="155" x2="160" y2="90" stroke="#1e3a8a" stroke-width="2" marker-end="url(#arr0)"/>
+  <text x="180" y="135" font-size="10" fill="#1e3a8a">decision + receipt</text>
+
+  <line x1="160" y1="290" x2="240" y2="220" stroke="#1e3a8a" stroke-width="2" marker-end="url(#arr0)"/>
+  <text x="170" y="248" font-size="10" fill="#1e3a8a">review action</text>
+
+  <line x1="240" y1="200" x2="160" y2="270" stroke="#1e3a8a" stroke-width="2" marker-end="url(#arr0)"/>
+  <text x="170" y="280" font-size="10" fill="#1e3a8a">alerts + dashboard</text>
+
+  <line x1="540" y1="70" x2="468" y2="135" stroke="#1e3a8a" stroke-width="2" marker-end="url(#arr0)"/>
+  <text x="475" y="100" font-size="10" fill="#1e3a8a">transaction events</text>
+
+  <line x1="468" y1="155" x2="540" y2="90" stroke="#1e3a8a" stroke-width="2" marker-end="url(#arr0)"/>
+  <text x="475" y="135" font-size="10" fill="#1e3a8a">approve / decline</text>
+
+  <line x1="540" y1="290" x2="460" y2="220" stroke="#1e3a8a" stroke-width="2" marker-end="url(#arr0)"/>
+  <text x="465" y="248" font-size="10" fill="#1e3a8a">user/role changes</text>
+
+  <line x1="460" y1="200" x2="540" y2="270" stroke="#1e3a8a" stroke-width="2" marker-end="url(#arr0)"/>
+  <text x="465" y="280" font-size="10" fill="#1e3a8a">audit logs</text>
+</svg>
+<div class="figure-title">Figure 6.1 — DFD Level 0 (context diagram)</div>
+</div>
+
+<h3>6.2 DFD Level 1 — Major Processes</h3>
+<p>Zooms into the system bubble. Shows the main internal processes and the data stores between them.</p>
+
+<div class="figure">
+<svg viewBox="0 0 800 540" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <defs>
+    <marker id="arr1" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0f172a"/>
+    </marker>
+  </defs>
+
+  <!-- External entities -->
+  <rect x="20" y="40" width="100" height="50" fill="#dbeafe" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="70" y="62" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">USER</text>
+  <text x="70" y="78" text-anchor="middle" font-size="9" fill="#374151">browser</text>
+
+  <rect x="680" y="40" width="100" height="50" fill="#dbeafe" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="730" y="62" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">PAYMENT</text>
+  <text x="730" y="78" text-anchor="middle" font-size="9" fill="#374151">simulator</text>
+
+  <rect x="20" y="460" width="100" height="50" fill="#dbeafe" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="70" y="482" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">ANALYST</text>
+
+  <rect x="680" y="460" width="100" height="50" fill="#dbeafe" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="730" y="482" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">ADMIN</text>
+
+  <!-- Processes (circles) -->
+  <ellipse cx="200" cy="160" rx="70" ry="40" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="200" y="155" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c2d12">1.0 Authenticate</text>
+  <text x="200" y="170" text-anchor="middle" font-size="10" fill="#7c2d12">User</text>
+
+  <ellipse cx="600" cy="160" rx="70" ry="40" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="600" y="155" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c2d12">2.0 Receive</text>
+  <text x="600" y="170" text-anchor="middle" font-size="10" fill="#7c2d12">Transaction</text>
+
+  <ellipse cx="400" cy="280" rx="80" ry="42" fill="#fbbf24" stroke="#92400e" stroke-width="3"/>
+  <text x="400" y="275" text-anchor="middle" font-size="11" font-weight="bold" fill="white">3.0 Score &amp;</text>
+  <text x="400" y="290" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Decide (ML+Rules)</text>
+
+  <ellipse cx="600" cy="400" rx="70" ry="40" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="600" y="395" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c2d12">4.0 Notify &amp;</text>
+  <text x="600" y="410" text-anchor="middle" font-size="10" fill="#7c2d12">Stream</text>
+
+  <ellipse cx="200" cy="400" rx="70" ry="40" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="200" y="395" text-anchor="middle" font-size="11" font-weight="bold" fill="#7c2d12">5.0 Review &amp;</text>
+  <text x="200" y="410" text-anchor="middle" font-size="10" fill="#7c2d12">Manage</text>
+
+  <!-- Data stores (open rectangles) -->
+  <rect x="320" y="60" width="160" height="30" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="400" y="80" text-anchor="middle" font-size="10" fill="#14532d">D1: users + roles</text>
+
+  <rect x="320" y="155" width="160" height="30" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="400" y="175" text-anchor="middle" font-size="10" fill="#14532d">D2: ML model + rules</text>
+
+  <rect x="320" y="380" width="160" height="30" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="400" y="400" text-anchor="middle" font-size="10" fill="#14532d">D3: transaction_records</text>
+
+  <rect x="320" y="450" width="160" height="30" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="400" y="470" text-anchor="middle" font-size="10" fill="#14532d">D4: audit_logs</text>
+
+  <!-- Flows -->
+  <line x1="120" y1="65" x2="155" y2="135" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+  <text x="115" y="105" font-size="9" fill="#0f172a">credentials</text>
+
+  <line x1="270" y1="160" x2="320" y2="80" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+  <text x="280" y="120" font-size="9" fill="#0f172a">verify</text>
+
+  <line x1="680" y1="65" x2="650" y2="135" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+  <text x="660" y="105" font-size="9" fill="#0f172a">txn data</text>
+
+  <line x1="600" y1="200" x2="450" y2="250" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+  <text x="510" y="220" font-size="9" fill="#0f172a">raw txn</text>
+
+  <line x1="400" y1="200" x2="400" y2="240" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+  <text x="410" y="225" font-size="9" fill="#0f172a">load</text>
+
+  <line x1="450" y1="310" x2="550" y2="380" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+  <text x="500" y="350" font-size="9" fill="#0f172a">decision</text>
+
+  <line x1="400" y1="320" x2="400" y2="375" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+  <text x="410" y="350" font-size="9" fill="#0f172a">save</text>
+
+  <line x1="600" y1="440" x2="120" y2="475" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+  <text x="350" y="438" font-size="9" fill="#0f172a">alerts to dashboard</text>
+
+  <line x1="270" y1="400" x2="320" y2="395" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+
+  <line x1="200" y1="440" x2="200" y2="465" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+
+  <line x1="680" y1="475" x2="270" y2="430" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+  <text x="450" y="495" font-size="9" fill="#0f172a">manage users / view logs</text>
+
+  <line x1="270" y1="385" x2="320" y2="395" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+
+  <line x1="320" y1="465" x2="270" y2="420" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr1)"/>
+
+  <line x1="400" y1="170" x2="400" y2="245" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arr1)"/>
+</svg>
+<div class="figure-title">Figure 6.2 — DFD Level 1 (5 main processes &amp; 4 data stores)</div>
+</div>
+
+<h4>Process descriptions (Level 1)</h4>
+<table>
+  <tr><th>ID</th><th>Process</th><th>Responsibility</th></tr>
+  <tr><td>1.0</td><td>Authenticate User</td><td>Verify credentials, optional 2FA, optional face match. Issues session cookie + JWT.</td></tr>
+  <tr><td>2.0</td><td>Receive Transaction</td><td>Accept transactions via REST <code>POST /api/transactions</code> or banking module.</td></tr>
+  <tr><td>3.0</td><td>Score &amp; Decide</td><td>Run features through ML ensemble + rule engine, blend scores, choose risk level &amp; decision.</td></tr>
+  <tr><td>4.0</td><td>Notify &amp; Stream</td><td>Push alerts to AlertManager, fire SSE event to dashboards, persist record.</td></tr>
+  <tr><td>5.0</td><td>Review &amp; Manage</td><td>Analysts/admins review flagged transactions, manage users, view audit logs.</td></tr>
+</table>
+
+<h3>6.3 DFD Level 2 — "Score &amp; Decide" exploded</h3>
+<p>This is the heart of the project. We zoom into Process 3.0 to see exactly what happens when a transaction arrives.</p>
+
+<div class="figure">
+<svg viewBox="0 0 820 480" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <defs>
+    <marker id="arr2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0f172a"/>
+    </marker>
+  </defs>
+
+  <!-- Input -->
+  <rect x="20" y="220" width="100" height="50" fill="#dbeafe" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="70" y="240" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">RAW</text>
+  <text x="70" y="258" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">TRANSACTION</text>
+
+  <!-- Process 3.1 -->
+  <ellipse cx="220" cy="100" rx="70" ry="36" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="220" y="98" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">3.1 Feature</text>
+  <text x="220" y="113" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">Engineering</text>
+
+  <!-- Process 3.2 -->
+  <ellipse cx="220" cy="245" rx="70" ry="36" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="220" y="243" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">3.2 ML</text>
+  <text x="220" y="258" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">Predict</text>
+
+  <!-- Process 3.3 -->
+  <ellipse cx="220" cy="380" rx="70" ry="36" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="220" y="378" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">3.3 Rule</text>
+  <text x="220" y="393" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">Engine</text>
+
+  <!-- Process 3.4 -->
+  <ellipse cx="450" cy="245" rx="80" ry="40" fill="#fbbf24" stroke="#92400e" stroke-width="3"/>
+  <text x="450" y="240" text-anchor="middle" font-size="11" font-weight="bold" fill="white">3.4 Score</text>
+  <text x="450" y="256" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Combiner</text>
+
+  <!-- Process 3.5 -->
+  <ellipse cx="660" cy="155" rx="70" ry="36" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="660" y="153" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">3.5 Risk</text>
+  <text x="660" y="168" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">Classifier</text>
+
+  <!-- Process 3.6 -->
+  <ellipse cx="660" cy="335" rx="70" ry="36" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="660" y="333" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">3.6 Decision</text>
+  <text x="660" y="348" text-anchor="middle" font-size="10" font-weight="bold" fill="#7c2d12">Maker</text>
+
+  <!-- Data stores -->
+  <rect x="380" y="40" width="160" height="30" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="460" y="60" text-anchor="middle" font-size="10" fill="#14532d">D2a: fraud_model.pkl</text>
+
+  <rect x="380" y="425" width="160" height="30" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="460" y="445" text-anchor="middle" font-size="10" fill="#14532d">D2b: rule definitions</text>
+
+  <!-- Output -->
+  <rect x="730" y="220" width="80" height="50" fill="#dcfce7" stroke="#14532d" stroke-width="2"/>
+  <text x="770" y="240" text-anchor="middle" font-size="10" font-weight="bold" fill="#14532d">DECISION</text>
+  <text x="770" y="258" text-anchor="middle" font-size="9" fill="#14532d">approve/review/decline</text>
+
+  <!-- Flows -->
+  <line x1="120" y1="240" x2="155" y2="120" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="120" y1="245" x2="155" y2="245" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="120" y1="250" x2="155" y2="370" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <line x1="290" y1="100" x2="380" y2="120" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="305" y="92" font-size="9" fill="#0f172a">features</text>
+
+  <line x1="380" y1="65" x2="290" y2="100" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arr2)"/>
+
+  <line x1="290" y1="245" x2="370" y2="245" stroke="#0f172a" stroke-width="2" marker-end="url(#arr2)"/>
+  <text x="300" y="237" font-size="9" fill="#0f172a">ML score (0-1)</text>
+
+  <line x1="290" y1="380" x2="380" y2="280" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="295" y="335" font-size="9" fill="#0f172a">rule score</text>
+
+  <line x1="380" y1="440" x2="290" y2="400" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arr2)"/>
+
+  <line x1="500" y1="220" x2="600" y2="170" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="510" y="195" font-size="9" fill="#0f172a">final score</text>
+
+  <line x1="660" y1="190" x2="660" y2="300" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="666" y="248" font-size="9" fill="#0f172a">risk_level</text>
+
+  <line x1="730" y1="335" x2="730" y2="270" stroke="#0f172a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="730" y="305" font-size="9" fill="#0f172a">decision</text>
+</svg>
+<div class="figure-title">Figure 6.3 — DFD Level 2: "Score &amp; Decide" expanded into 6 sub-processes</div>
+</div>
+
+<h4>Sub-process explanations</h4>
+<table>
+  <tr><th>ID</th><th>Sub-process</th><th>Description</th></tr>
+  <tr><td>3.1</td><td>Feature Engineering</td><td>Convert raw fields to numeric features the model expects (encode country, hour-of-day, scale amount).</td></tr>
+  <tr><td>3.2</td><td>ML Predict</td><td>Pass features through the loaded VotingClassifier; output probability ∈ [0,1].</td></tr>
+  <tr><td>3.3</td><td>Rule Engine</td><td>Evaluate 5 hand-written rules in parallel; return rule score + list of triggered rule names.</td></tr>
+  <tr><td>3.4</td><td>Score Combiner</td><td>Compute <code>final = 0.65·ml + 0.35·rules</code>.</td></tr>
+  <tr><td>3.5</td><td>Risk Classifier</td><td>Map score to one of {low, medium, high, critical} via thresholds.</td></tr>
+  <tr><td>3.6</td><td>Decision Maker</td><td>Map risk level to action: approve / review / decline.</td></tr>
+</table>
+
+<!-- =================== 7. MODULES =================== -->
+<h2>7. Module-by-Module Breakdown</h2>
+
+<div class="grid2">
+  <div class="card"><h4>auth/</h4>
+  <code>routes.py</code> · <code>decorators.py</code> · <code>middleware.py</code> · <code>init_roles.py</code><br>
+  Handles signup, login, logout, password reset, security questions, 2FA, face login, and exposes <code>@admin_required</code> / <code>@analyst_required</code> decorators.
+  </div>
+  <div class="card"><h4>api/</h4>
+  <code>routes.py</code> · <code>extras_routes.py</code> · <code>sse_routes.py</code><br>
+  REST endpoints: <code>/api/transactions</code>, <code>/api/metrics</code>, <code>/api/alerts</code>, <code>/api/predict</code>; SSE channel at <code>/api/stream</code>.
+  </div>
+  <div class="card"><h4>admin/</h4>
+  <code>routes.py</code><br>
+  CRUD for users, role assignment, system stats, audit-log search, dashboard rendering at <code>/admin/dashboard</code>.
+  </div>
+  <div class="card"><h4>banking/</h4>
+  <code>routes.py</code> · <code>importer.py</code> · <code>live_stream.py</code> · <code>seed.py</code> · <code>utils.py</code><br>
+  Real-style banking: open accounts, issue cards, transfer money, freeze cards, generate IBANs/PANs, simulate live activity.
+  </div>
+  <div class="card"><h4>database/</h4>
+  <code>__init__.py</code> · <code>models.py</code><br>
+  SQLAlchemy setup, all 6 ORM models, password &amp; PAN hashing helpers, <code>to_dict()</code> serialization.
+  </div>
+  <div class="card"><h4>models/ (ML)</h4>
+  <code>fraud_model.py</code> · <code>rule_engine.py</code><br>
+  The <code>FraudModel</code> class wraps train/predict/save/load. <code>RuleEngine</code> evaluates 5 explainable rules.
+  </div>
+  <div class="card"><h4>data_processing/</h4>
+  <code>data_loader.py</code> · <code>feature_engineer.py</code> · <code>countries.py</code><br>
+  Generates synthetic transactions, encodes categorical fields, scales numeric fields, country-risk lookup.
+  </div>
+  <div class="card"><h4>real_time/</h4>
+  <code>monitor.py</code> · <code>alerts.py</code> · <code>event_bus.py</code><br>
+  In-memory sliding-window monitor (last 500 txns), AlertManager (last 200 alerts), pub/sub event bus for SSE.
+  </div>
+</div>
+
+<!-- =================== 8. DATABASE =================== -->
+<h2>8. Database Design</h2>
+
+<h3>8.1 ER Diagram</h3>
+<div class="figure">
+<svg viewBox="0 0 820 460" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <!-- roles -->
+  <rect x="40" y="40" width="160" height="100" fill="#fef3c7" stroke="#92400e" stroke-width="2" rx="5"/>
+  <text x="120" y="60" text-anchor="middle" font-size="13" font-weight="bold" fill="#7c2d12">roles</text>
+  <line x1="40" y1="68" x2="200" y2="68" stroke="#92400e"/>
+  <text x="50" y="84" font-size="10" fill="#374151">id (PK)</text>
+  <text x="50" y="100" font-size="10" fill="#374151">name</text>
+  <text x="50" y="116" font-size="10" fill="#374151">description</text>
+  <text x="50" y="132" font-size="10" fill="#374151">permissions (JSON)</text>
+
+  <!-- users -->
+  <rect x="320" y="40" width="180" height="180" fill="#dbeafe" stroke="#1e3a8a" stroke-width="3" rx="5"/>
+  <text x="410" y="60" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e3a8a">users</text>
+  <line x1="320" y1="68" x2="500" y2="68" stroke="#1e3a8a"/>
+  <text x="330" y="84" font-size="10" fill="#374151">id (PK)</text>
+  <text x="330" y="100" font-size="10" fill="#374151">username, email</text>
+  <text x="330" y="116" font-size="10" fill="#374151">password_hash</text>
+  <text x="330" y="132" font-size="10" fill="#374151">full_name, country</text>
+  <text x="330" y="148" font-size="10" fill="#374151">role_id (FK→roles)</text>
+  <text x="330" y="164" font-size="10" fill="#374151">face_descriptor (JSON)</text>
+  <text x="330" y="180" font-size="10" fill="#374151">two_factor_enabled</text>
+  <text x="330" y="196" font-size="10" fill="#374151">created_at, last_login</text>
+
+  <!-- audit_logs -->
+  <rect x="620" y="40" width="160" height="120" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="5"/>
+  <text x="700" y="60" text-anchor="middle" font-size="13" font-weight="bold" fill="#7f1d1d">audit_logs</text>
+  <line x1="620" y1="68" x2="780" y2="68" stroke="#dc2626"/>
+  <text x="630" y="84" font-size="10" fill="#374151">id (PK)</text>
+  <text x="630" y="100" font-size="10" fill="#374151">user_id (FK→users)</text>
+  <text x="630" y="116" font-size="10" fill="#374151">action, resource</text>
+  <text x="630" y="132" font-size="10" fill="#374151">details (JSON)</text>
+  <text x="630" y="148" font-size="10" fill="#374151">ip_address, status</text>
+
+  <!-- bank_accounts -->
+  <rect x="40" y="280" width="180" height="140" fill="#dcfce7" stroke="#15803d" stroke-width="2" rx="5"/>
+  <text x="130" y="300" text-anchor="middle" font-size="13" font-weight="bold" fill="#14532d">bank_accounts</text>
+  <line x1="40" y1="308" x2="220" y2="308" stroke="#15803d"/>
+  <text x="50" y="324" font-size="10" fill="#374151">id (PK)</text>
+  <text x="50" y="340" font-size="10" fill="#374151">user_id (FK→users)</text>
+  <text x="50" y="356" font-size="10" fill="#374151">account_number, iban</text>
+  <text x="50" y="372" font-size="10" fill="#374151">balance, available_balance</text>
+  <text x="50" y="388" font-size="10" fill="#374151">currency, country</text>
+  <text x="50" y="404" font-size="10" fill="#374151">status (active/frozen)</text>
+
+  <!-- cards -->
+  <rect x="320" y="280" width="180" height="140" fill="#dcfce7" stroke="#15803d" stroke-width="2" rx="5"/>
+  <text x="410" y="300" text-anchor="middle" font-size="13" font-weight="bold" fill="#14532d">cards</text>
+  <line x1="320" y1="308" x2="500" y2="308" stroke="#15803d"/>
+  <text x="330" y="324" font-size="10" fill="#374151">id (PK)</text>
+  <text x="330" y="340" font-size="10" fill="#374151">user_id, account_id (FK)</text>
+  <text x="330" y="356" font-size="10" fill="#374151">card_number_masked, last4</text>
+  <text x="330" y="372" font-size="10" fill="#374151">pan_hash, cvv_hash</text>
+  <text x="330" y="388" font-size="10" fill="#374151">daily_limit, daily_spent</text>
+  <text x="330" y="404" font-size="10" fill="#374151">status, brand, type</text>
+
+  <!-- transaction_records -->
+  <rect x="600" y="240" width="200" height="180" fill="#fef3c7" stroke="#d97706" stroke-width="3" rx="5"/>
+  <text x="700" y="260" text-anchor="middle" font-size="13" font-weight="bold" fill="#7c2d12">transaction_records</text>
+  <line x1="600" y1="268" x2="800" y2="268" stroke="#d97706"/>
+  <text x="610" y="284" font-size="10" fill="#374151">id (PK), transaction_id</text>
+  <text x="610" y="300" font-size="10" fill="#374151">amount, country, hour</text>
+  <text x="610" y="316" font-size="10" fill="#374151">merchant_category, device</text>
+  <text x="610" y="332" font-size="10" fill="#374151">is_fraud, fraud_probability</text>
+  <text x="610" y="348" font-size="10" fill="#374151">risk_level, decision</text>
+  <text x="610" y="364" font-size="10" fill="#374151">model_score, rule_score</text>
+  <text x="610" y="380" font-size="10" fill="#374151">user_id, account_id, card_id</text>
+  <text x="610" y="396" font-size="10" fill="#374151">review_status, reviewed_by</text>
+  <text x="610" y="412" font-size="10" fill="#374151">processed_at</text>
+
+  <!-- Relationships -->
+  <line x1="200" y1="90" x2="320" y2="148" stroke="#0f172a" stroke-width="1.5"/>
+  <text x="220" y="115" font-size="9" fill="#0f172a">1 : N</text>
+
+  <line x1="500" y1="100" x2="620" y2="100" stroke="#0f172a" stroke-width="1.5"/>
+  <text x="540" y="92" font-size="9" fill="#0f172a">1 : N</text>
+
+  <line x1="410" y1="220" x2="130" y2="280" stroke="#0f172a" stroke-width="1.5"/>
+  <text x="225" y="248" font-size="9" fill="#0f172a">1 : N</text>
+
+  <line x1="410" y1="220" x2="410" y2="280" stroke="#0f172a" stroke-width="1.5"/>
+  <text x="418" y="252" font-size="9" fill="#0f172a">1 : N</text>
+
+  <line x1="220" y1="350" x2="320" y2="350" stroke="#0f172a" stroke-width="1.5"/>
+  <text x="245" y="343" font-size="9" fill="#0f172a">1 : N</text>
+
+  <line x1="500" y1="350" x2="600" y2="330" stroke="#0f172a" stroke-width="1.5"/>
+  <text x="525" y="335" font-size="9" fill="#0f172a">1 : N</text>
+
+  <line x1="220" y1="380" x2="600" y2="380" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="380" y="372" font-size="9" fill="#0f172a">optional 1 : N</text>
+</svg>
+<div class="figure-title">Figure 8.1 — Entity-Relationship Diagram (6 tables)</div>
+</div>
+
+<h3>8.2 Tables in detail</h3>
+<table>
+  <tr><th>Table</th><th>Rows expected</th><th>Key columns</th><th>Relations</th></tr>
+  <tr><td><strong>roles</strong></td><td>3 (seeded)</td><td>id, name, permissions JSON</td><td>1 → N users</td></tr>
+  <tr><td><strong>users</strong></td><td>1 admin + signups</td><td>id, username, email, password_hash, role_id, face_descriptor</td><td>belongs_to role; 1 → N audit_logs, accounts, cards</td></tr>
+  <tr><td><strong>audit_logs</strong></td><td>append-only, can be huge</td><td>id, user_id, action, ip_address, details, created_at</td><td>belongs_to user</td></tr>
+  <tr><td><strong>transaction_records</strong></td><td>can be millions</td><td>id, transaction_id, amount, fraud_probability, risk_level, decision</td><td>optional belongs_to user/account/card</td></tr>
+  <tr><td><strong>bank_accounts</strong></td><td>1+ per user</td><td>id, user_id, account_number, iban, balance, status</td><td>belongs_to user; 1 → N cards</td></tr>
+  <tr><td><strong>cards</strong></td><td>1+ per account</td><td>id, account_id, last4, pan_hash, daily_limit, status</td><td>belongs_to account</td></tr>
+</table>
+
+<!-- =================== 9. MACHINE LEARNING =================== -->
+<h2>9. Machine Learning — Detailed</h2>
+
+<h3>9.1 What is Machine Learning?</h3>
+<p>Imagine teaching a child to spot a fake banknote. You don't write rules — instead you show <em>thousands</em> of real and fake notes labelled "real / fake". The child notices patterns: paper feel, watermark, color. Then on a brand-new note, they can guess.</p>
+<p>Machine Learning works the same way. We feed the algorithm thousands of labelled past transactions. The algorithm internally adjusts millions of numbers until its guesses match the labels. Once trained, it can score brand-new transactions.</p>
+<p><strong>Mathematically:</strong> we are learning a function <code>f(x) ≈ y</code>, where <code>x</code> is the transaction features and <code>y</code> is fraud (0 or 1). The "learning" part is finding the parameters of <code>f</code> that minimise prediction error on the training set.</p>
+
+<h3>9.2 Supervised classification</h3>
+<p>Sentinel uses <strong>supervised binary classification</strong>:</p>
+<ul>
+  <li><em>Supervised</em> = we have labelled examples to learn from.</li>
+  <li><em>Binary</em> = there are only 2 possible outcomes (fraud vs not-fraud).</li>
+  <li><em>Classification</em> = we predict a category, not a number.</li>
+</ul>
+
+<h3>9.3 The Voting Ensemble</h3>
+<p>Instead of a single algorithm, Sentinel uses a <strong>VotingClassifier</strong> that combines three different ones. Each gives a probability; the final probability is a weighted average.</p>
+
+<pre>final_probability = 0.40 × RandomForest.predict_proba(x)[1]
+                  + 0.40 × GradientBoosting.predict_proba(x)[1]
+                  + 0.20 × LogisticRegression.predict_proba(x)[1]</pre>
+
+<h4>9.3.1 Random Forest</h4>
+<ul>
+  <li>Builds <strong>120 decision trees</strong> on random subsamples of the data.</li>
+  <li>Each tree splits on features like "amount &gt; $500?", "is_card_present?".</li>
+  <li>The forest's prediction is the majority vote.</li>
+  <li>Strengths: robust to outliers, tolerates missing values, hard to overfit.</li>
+</ul>
+
+<h4>9.3.2 Gradient Boosting</h4>
+<ul>
+  <li>Builds <strong>100 trees one after another</strong>; each new tree fixes the mistakes of the previous.</li>
+  <li>Uses gradient descent to minimise the log-loss.</li>
+  <li>Strengths: typically the most accurate algorithm on tabular data.</li>
+</ul>
+
+<h4>9.3.3 Logistic Regression</h4>
+<ul>
+  <li>A <strong>linear</strong> model: <code>p = sigmoid(w₁x₁ + w₂x₂ + ... + b)</code>.</li>
+  <li>Fast, low-memory, interpretable (each weight tells you how a feature affects fraud probability).</li>
+  <li>Acts as a sanity-check — if the simple model and the trees agree, confidence is high.</li>
+</ul>
+
+<h3>9.4 Feature Engineering</h3>
+<p>Before the model can use a transaction, the raw data must be transformed into a numeric vector. This is done by <code>FeatureEngineer</code> in <code>src/data_processing/feature_engineer.py</code>.</p>
+<table>
+  <tr><th>Raw field</th><th>Transformation</th><th>Why</th></tr>
+  <tr><td>amount (float)</td><td><code>StandardScaler</code> (mean 0, std 1)</td><td>Prevents large values from dominating distance-based math.</td></tr>
+  <tr><td>country (string)</td><td>Label-encode + one-hot for top 20</td><td>ML expects numbers; one-hot avoids fake ordering.</td></tr>
+  <tr><td>merchant_category (string)</td><td>One-hot encode</td><td>Same reason.</td></tr>
+  <tr><td>device_type (string)</td><td>One-hot encode</td><td>Same reason.</td></tr>
+  <tr><td>hour (int 0-23)</td><td>Cyclic encoding: <code>sin(2πh/24), cos(2πh/24)</code></td><td>Hour 23 is close to hour 0; cyclic encoding captures that.</td></tr>
+  <tr><td>is_card_present (bool)</td><td>Cast to 0/1</td><td>Trivial.</td></tr>
+</table>
+
+<h3>9.5 Training Pipeline</h3>
+<ol>
+  <li><strong>Generate / load data</strong> → 10,000 rows with 5% fraud rate (configurable).</li>
+  <li><strong>Train / test split</strong> → 80% train, 20% test, stratified on label.</li>
+  <li><strong>Fit the FeatureEngineer</strong> on train set only.</li>
+  <li><strong>Train each algorithm</strong> in the VotingClassifier.</li>
+  <li><strong>Evaluate</strong> on the held-out test set with 5 metrics.</li>
+  <li><strong>Save model</strong> with <code>pickle</code> to <code>models/trained/fraud_model.pkl</code>.</li>
+</ol>
+
+<pre>python main.py --mode train --data data/synthetic/synthetic_transactions.csv
+
+# Output:
+# accuracy             0.964
+# precision            0.847
+# recall               0.802
+# f1_score             0.824
+# roc_auc              0.971
+# confusion_matrix     [[1881  19] [ 21  79]]</pre>
+
+<h3>9.6 Performance Metrics</h3>
+<table>
+  <tr><th>Metric</th><th>Formula</th><th>What it tells us</th><th>Target</th></tr>
+  <tr><td>Accuracy</td><td>(TP+TN)/(TP+TN+FP+FN)</td><td>Overall % correct.</td><td>≥ 0.95</td></tr>
+  <tr><td>Precision</td><td>TP/(TP+FP)</td><td>Of all flagged, how many are real fraud (low false alarms).</td><td>≥ 0.80</td></tr>
+  <tr><td>Recall</td><td>TP/(TP+FN)</td><td>Of all real fraud, how many we caught.</td><td>≥ 0.80</td></tr>
+  <tr><td>F1</td><td>2·P·R/(P+R)</td><td>Harmonic mean of precision and recall.</td><td>≥ 0.80</td></tr>
+  <tr><td>ROC-AUC</td><td>Area under ROC curve</td><td>Quality of probability ranking, threshold-independent.</td><td>≥ 0.95</td></tr>
+</table>
+
+<!-- =================== 10. RULE ENGINE =================== -->
+<h2>10. The Rule Engine</h2>
+<p>An ML model is statistically powerful but a "black box" — it cannot easily explain <em>why</em> a transaction was flagged. Auditors and customers demand reasons. The <strong>RuleEngine</strong> in <code>src/models/rule_engine.py</code> evaluates 5 hand-written, fully transparent rules in parallel.</p>
+
+<h3>10.1 The 5 rules</h3>
+<table>
+  <tr><th>Rule</th><th>Condition</th><th>Weight</th><th>Reason text shown to user</th></tr>
+  <tr><td>high_amount</td><td>amount ≥ $2,000</td><td>+0.30</td><td>"Amount $X exceeds $2,000 threshold"</td></tr>
+  <tr><td>high_risk_country</td><td>country ∈ {NG, RU, CN}</td><td>+0.25</td><td>"Country X flagged as high-risk"</td></tr>
+  <tr><td>high_risk_merchant</td><td>category ∈ {gambling, crypto, wire_transfer}</td><td>+0.20</td><td>"Merchant category X is high-risk"</td></tr>
+  <tr><td>odd_hour</td><td>hour &lt; 5 AND amount &gt; $300</td><td>+0.15</td><td>"Transaction at unusual hour H with $X"</td></tr>
+  <tr><td>card_not_present_high_value</td><td>not is_card_present AND amount &gt; $1,000</td><td>+0.15</td><td>"Online transaction with high amount $X"</td></tr>
+</table>
+
+<h3>10.2 Combining ML and rules</h3>
+<pre>final_score = 0.65 × ml_probability + 0.35 × rule_score
+final_score = clip(final_score, 0.0, 1.0)</pre>
+
+<h3>10.3 Risk levels and decisions</h3>
+<table>
+  <tr><th>final_score</th><th>risk_level</th><th>decision</th><th>What happens</th></tr>
+  <tr><td>[0.00, 0.40)</td><td><span class="pill" style="background:#dcfce7;color:#166534;">low</span></td><td>approve</td><td>Transaction goes through silently.</td></tr>
+  <tr><td>[0.40, 0.65)</td><td><span class="pill" style="background:#fef3c7;color:#92400e;">medium</span></td><td>approve</td><td>Goes through, logged for trend analysis.</td></tr>
+  <tr><td>[0.65, 0.85)</td><td><span class="pill" style="background:#fed7aa;color:#9a3412;">high</span></td><td>review</td><td>Held; analyst gets a notification.</td></tr>
+  <tr><td>[0.85, 1.00]</td><td><span class="pill" style="background:#fecaca;color:#991b1b;">critical</span></td><td>decline</td><td>Blocked; user notified; alert raised.</td></tr>
+</table>
+
+<!-- =================== 11. REAL-TIME =================== -->
+<h2>11. How Fraud Is Detected — Real-Time Sequence</h2>
+<p>This section traces the exact path of <strong>one transaction</strong> through the system, from the moment it enters until the dashboard updates.</p>
+
+<div class="figure">
+<svg viewBox="0 0 800 540" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <defs>
+    <marker id="arr3" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#1e3a8a"/>
+    </marker>
+  </defs>
+
+  <!-- Lifelines -->
+  <text x="80" y="25" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">Browser</text>
+  <text x="220" y="25" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">Flask API</text>
+  <text x="370" y="25" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">FraudModel</text>
+  <text x="510" y="25" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">RuleEngine</text>
+  <text x="640" y="25" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">DB + Alerts</text>
+  <text x="760" y="25" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">SSE</text>
+
+  <line x1="80" y1="35" x2="80" y2="510" stroke="#94a3b8" stroke-dasharray="3,3"/>
+  <line x1="220" y1="35" x2="220" y2="510" stroke="#94a3b8" stroke-dasharray="3,3"/>
+  <line x1="370" y1="35" x2="370" y2="510" stroke="#94a3b8" stroke-dasharray="3,3"/>
+  <line x1="510" y1="35" x2="510" y2="510" stroke="#94a3b8" stroke-dasharray="3,3"/>
+  <line x1="640" y1="35" x2="640" y2="510" stroke="#94a3b8" stroke-dasharray="3,3"/>
+  <line x1="760" y1="35" x2="760" y2="510" stroke="#94a3b8" stroke-dasharray="3,3"/>
+
+  <!-- 1. POST /api/transactions -->
+  <line x1="80" y1="60" x2="220" y2="60" stroke="#1e3a8a" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="100" y="55" font-size="10" fill="#1e3a8a">1. POST /api/transactions {amount, country, ...}</text>
+
+  <!-- 2. Auth check -->
+  <rect x="215" y="80" width="10" height="20" fill="#fef3c7" stroke="#92400e"/>
+  <text x="240" y="95" font-size="10" fill="#374151">2. session/JWT check</text>
+
+  <!-- 3. To FraudModel -->
+  <line x1="220" y1="120" x2="370" y2="120" stroke="#1e3a8a" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="240" y="115" font-size="10" fill="#1e3a8a">3. predict(transaction)</text>
+
+  <!-- 4. Feature eng -->
+  <rect x="365" y="135" width="10" height="20" fill="#fef3c7" stroke="#92400e"/>
+  <text x="385" y="150" font-size="10" fill="#374151">4. feature_engineer.transform()</text>
+
+  <!-- 5. Predict -->
+  <rect x="365" y="170" width="10" height="25" fill="#fbbf24" stroke="#92400e"/>
+  <text x="385" y="187" font-size="10" fill="#374151">5. voting_clf.predict_proba() → 0.42</text>
+
+  <!-- 6. Return ML score -->
+  <line x1="370" y1="215" x2="220" y2="215" stroke="#1e3a8a" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="240" y="210" font-size="10" fill="#1e3a8a">6. ml_score = 0.42</text>
+
+  <!-- 7. To RuleEngine -->
+  <line x1="220" y1="245" x2="510" y2="245" stroke="#1e3a8a" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="240" y="240" font-size="10" fill="#1e3a8a">7. evaluate(transaction)</text>
+
+  <!-- 8. Eval -->
+  <rect x="505" y="260" width="10" height="25" fill="#fbbf24" stroke="#92400e"/>
+  <text x="525" y="277" font-size="10" fill="#374151">8. check 5 rules → score 0.30, ['high_amount']</text>
+
+  <!-- 9. Return rule score -->
+  <line x1="510" y1="305" x2="220" y2="305" stroke="#1e3a8a" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="240" y="300" font-size="10" fill="#1e3a8a">9. rule_score = 0.30, reasons</text>
+
+  <!-- 10. Combine -->
+  <rect x="215" y="320" width="10" height="20" fill="#fef3c7" stroke="#92400e"/>
+  <text x="240" y="335" font-size="10" fill="#374151">10. final = 0.65·0.42 + 0.35·0.30 = 0.378 → low → approve</text>
+
+  <!-- 11. Save -->
+  <line x1="220" y1="365" x2="640" y2="365" stroke="#1e3a8a" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="240" y="360" font-size="10" fill="#1e3a8a">11. INSERT into transaction_records + audit_logs</text>
+
+  <!-- 12. Push event -->
+  <line x1="640" y1="395" x2="760" y2="395" stroke="#1e3a8a" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="660" y="390" font-size="10" fill="#1e3a8a">12. EventBus.publish</text>
+
+  <!-- 13. SSE to browser -->
+  <line x1="760" y1="425" x2="80" y2="425" stroke="#dc2626" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="200" y="420" font-size="10" fill="#dc2626">13. SSE event → dashboard updates &lt; 100 ms</text>
+
+  <!-- 14. HTTP response -->
+  <line x1="220" y1="465" x2="80" y2="465" stroke="#15803d" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="100" y="460" font-size="10" fill="#15803d">14. HTTP 200 OK {decision: approve, ...}</text>
+
+  <!-- 15. Render -->
+  <rect x="75" y="480" width="10" height="20" fill="#dcfce7" stroke="#15803d"/>
+  <text x="100" y="495" font-size="10" fill="#374151">15. Browser shows decision + risk badge</text>
+</svg>
+<div class="figure-title">Figure 11.1 — Sequence diagram for a single transaction (typical latency &lt; 50 ms)</div>
+</div>
+
+<h3>11.1 Latency budget</h3>
+<table>
+  <tr><th>Step</th><th>Typical time</th></tr>
+  <tr><td>Auth check</td><td>~ 1 ms</td></tr>
+  <tr><td>Feature engineering</td><td>~ 2 ms</td></tr>
+  <tr><td>ML predict (3 algorithms)</td><td>~ 20 ms</td></tr>
+  <tr><td>Rule engine</td><td>~ 1 ms</td></tr>
+  <tr><td>DB insert</td><td>~ 5 ms</td></tr>
+  <tr><td>SSE publish</td><td>~ 1 ms</td></tr>
+  <tr><th>Total</th><th>~ 30 ms (well under 50 ms target)</th></tr>
+</table>
+
+<!-- =================== 12. SECURITY =================== -->
+<h2>12. Authentication, Authorization &amp; Security</h2>
+
+<h3>12.1 Authentication (who are you?)</h3>
+<ul>
+  <li><strong>Username + password</strong> — primary; passwords hashed with Werkzeug's scrypt.</li>
+  <li><strong>2-Factor (optional)</strong> — TOTP code (Google Authenticator).</li>
+  <li><strong>Face login (optional)</strong> — face-api.js extracts a 128-dim descriptor; on login, the captured descriptor is compared with cosine similarity ≥ 0.6.</li>
+  <li><strong>Security question</strong> — fallback recovery, answer hashed.</li>
+  <li><strong>Lockout</strong> — 5 failed attempts → 15-minute account lock.</li>
+</ul>
+
+<h3>12.2 Authorization (what can you do?)</h3>
+<p>Role-Based Access Control (RBAC). Three roles seeded at first run:</p>
+<table>
+  <tr><th>Role</th><th>Permissions (excerpt)</th></tr>
+  <tr><td><strong>admin</strong></td><td>manage_users, manage_roles, retrain_models, view_audit_logs, export_data, manage_settings</td></tr>
+  <tr><td><strong>analyst</strong></td><td>view_dashboard, review_transactions, retrain_models, export_data</td></tr>
+  <tr><td><strong>viewer</strong></td><td>view_dashboard, view_transactions (read-only)</td></tr>
+</table>
+
+<h3>12.3 Other security controls</h3>
+<ul>
+  <li><strong>Audit log</strong> on every login, password change, role change, transaction review.</li>
+  <li><strong>CSRF</strong> protection on form posts via Flask-WTF.</li>
+  <li><strong>SQL injection</strong> impossible — all queries via SQLAlchemy parameterised statements.</li>
+  <li><strong>XSS</strong> mitigated — Jinja templates auto-escape variables.</li>
+  <li><strong>PCI-DSS-style PAN handling</strong> — full card number never stored, only mask + sha-256 hash + last 4.</li>
+  <li><strong>Email masking</strong> — non-admins see <code>a***n@example.com</code>.</li>
+</ul>
+
+<!-- =================== 13. API =================== -->
+<h2>13. REST API Reference</h2>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr>
+  <tr><td>POST</td><td>/auth/register</td><td>—</td><td>Create new user account</td></tr>
+  <tr><td>POST</td><td>/auth/login</td><td>—</td><td>Authenticate and start session</td></tr>
+  <tr><td>POST</td><td>/auth/logout</td><td>session</td><td>End session</td></tr>
+  <tr><td>POST</td><td>/auth/face-login</td><td>—</td><td>Login by face descriptor</td></tr>
+  <tr><td>POST</td><td>/api/transactions</td><td>session</td><td>Score a single transaction</td></tr>
+  <tr><td>GET</td><td>/api/transactions</td><td>session</td><td>Recent scored transactions</td></tr>
+  <tr><td>GET</td><td>/api/metrics</td><td>session</td><td>Live KPI snapshot</td></tr>
+  <tr><td>GET</td><td>/api/alerts</td><td>session</td><td>Recent alerts feed</td></tr>
+  <tr><td>GET</td><td>/api/stream</td><td>session</td><td>SSE channel for live events</td></tr>
+  <tr><td>GET</td><td>/admin/api/users</td><td>admin</td><td>Paged list of users</td></tr>
+  <tr><td>POST</td><td>/admin/api/users/{id}</td><td>admin</td><td>Update user attributes</td></tr>
+  <tr><td>GET</td><td>/admin/api/audit-logs</td><td>admin</td><td>Search audit logs</td></tr>
+  <tr><td>GET</td><td>/banking/api/accounts</td><td>session</td><td>List my bank accounts</td></tr>
+  <tr><td>GET</td><td>/banking/api/cards</td><td>session</td><td>List my cards</td></tr>
+  <tr><td>POST</td><td>/banking/api/cards/{id}/freeze</td><td>session</td><td>Freeze a card</td></tr>
+</table>
+
+<!-- =================== 14. UI =================== -->
+<h2>14. Frontend &amp; UI/UX</h2>
+<table>
+  <tr><th>Page</th><th>File</th><th>Purpose</th></tr>
+  <tr><td>Dashboard</td><td>frontend/index.html</td><td>Live KPIs, charts, transaction stream, alerts</td></tr>
+  <tr><td>Login</td><td>frontend/templates/auth/login.html</td><td>Username/password + face + 2FA</td></tr>
+  <tr><td>Register</td><td>frontend/templates/auth/register.html</td><td>New user signup</td></tr>
+  <tr><td>Profile</td><td>frontend/templates/auth/profile.html</td><td>Edit personal info, enable 2FA, enroll face</td></tr>
+  <tr><td>Banking</td><td>frontend/banking.html</td><td>Accounts, cards, transfers, freeze/block</td></tr>
+  <tr><td>Transactions</td><td>frontend/transactions.html</td><td>User-facing transaction history</td></tr>
+  <tr><td>Notifications</td><td>frontend/notifications.html</td><td>Alerts inbox</td></tr>
+  <tr><td>Reports</td><td>frontend/reports.html</td><td>Analyst analytics</td></tr>
+  <tr><td>Admin</td><td>frontend/templates/admin/dashboard.html</td><td>User management, audit logs, system stats</td></tr>
+</table>
+
+<!-- =================== 15. DEPLOY =================== -->
+<h2>15. Deployment &amp; DevOps</h2>
+<h3>15.1 Local development</h3>
+<pre>git clone https://github.com/jumanalnagesh80-pixel/Fraud-Detection-Syst.git
+cd Fraud-Detection-Syst
+pip install -r requirements.txt
+python main.py</pre>
+
+<h3>15.2 Docker deployment</h3>
+<pre>docker compose up --build
+# App on http://localhost:5000</pre>
+
+<h3>15.3 Production checklist</h3>
+<ul>
+  <li>Set <code>SECRET_KEY</code>, <code>JWT_SECRET_KEY</code> to strong random values.</li>
+  <li>Switch <code>DATABASE_URL</code> to PostgreSQL (e.g. <code>postgresql://user:pass@host/db</code>).</li>
+  <li>Run with Gunicorn + 4 workers behind nginx for HTTPS termination.</li>
+  <li>Schedule weekly model retraining (cron or Airflow).</li>
+  <li>Ship audit_logs to a SIEM (Splunk / ELK).</li>
+  <li>Enable rate-limiting on <code>/auth/*</code> with Flask-Limiter.</li>
+</ul>
+
+<!-- =================== 16. HOW TO USE =================== -->
+<h2>16. How To Use The Project — step by step</h2>
+<ol>
+  <li><strong>Install dependencies:</strong> <code>pip install -r requirements.txt</code></li>
+  <li><strong>Initialise the database:</strong> <code>python scripts/db_inspect.py init</code></li>
+  <li><strong>Generate synthetic data (optional):</strong> <code>python main.py --mode generate --samples 10000</code></li>
+  <li><strong>Train model (optional, also runs on first launch):</strong> <code>python main.py --mode train</code></li>
+  <li><strong>Start app:</strong> <code>python main.py</code> → open <code>http://localhost:5000</code></li>
+  <li><strong>Login:</strong> <code>admin / admin123</code> (change immediately)</li>
+  <li><strong>Optional — start traffic simulator in another terminal:</strong> <code>python transaction_simulator.py</code></li>
+  <li><strong>Inspect DB any time:</strong> <code>python scripts/db_inspect.py summary</code></li>
+</ol>
+
+<!-- =================== 17. FUTURE =================== -->
+<h2>17. Future Scope &amp; Real-World Use Cases</h2>
+
+<h3>17.1 Where this kind of system is used today</h3>
+<ul>
+  <li><strong>Banks</strong> — every credit/debit-card swipe is scored in real time before authorization.</li>
+  <li><strong>Payment gateways (Stripe, PayPal, Razorpay)</strong> — score every API call to block stolen cards.</li>
+  <li><strong>E-commerce checkouts</strong> — Shopify, Amazon, Flipkart use similar systems to block bot purchases.</li>
+  <li><strong>Telco SIM-swap detection</strong> — same patterns: unusual location + high amount + odd hour.</li>
+  <li><strong>Crypto exchanges</strong> — flag wash trading and money laundering.</li>
+  <li><strong>Insurance claims</strong> — same model architecture, different features.</li>
+</ul>
+
+<h3>17.2 Future enhancements (roadmap)</h3>
+<table>
+  <tr><th>Enhancement</th><th>Why it matters</th></tr>
+  <tr><td>Deep learning (LSTM / Transformer)</td><td>Captures user behaviour over time — long-term spending patterns vs sudden spikes.</td></tr>
+  <tr><td>Graph Neural Networks (GNN)</td><td>Detect fraud rings — accounts that all share IPs or devices.</td></tr>
+  <tr><td>Real Kafka stream</td><td>Move from polling/SSE to durable, replayable, high-throughput event streams.</td></tr>
+  <tr><td>SHAP / LIME explanations</td><td>Per-transaction contribution of each feature to the ML score.</td></tr>
+  <tr><td>Mobile app + push notifications</td><td>Customer can confirm or decline suspicious transactions from their phone.</td></tr>
+  <tr><td>Federated learning</td><td>Train across multiple banks without exposing customer data.</td></tr>
+  <tr><td>Geo-IP + device fingerprinting</td><td>Stronger features beyond raw transaction data.</td></tr>
+  <tr><td>Online learning</td><td>Model updates continuously instead of weekly batch.</td></tr>
+  <tr><td>Adversarial robustness testing</td><td>Defend against attackers crafting transactions to evade detection.</td></tr>
+  <tr><td>Multi-tenancy</td><td>Support many client banks on the same platform with data isolation.</td></tr>
+</table>
+
+<!-- =================== 18. Q&A =================== -->
+<h2>18. Project Q&amp;A — viva / interview style</h2>
+
+<div class="qa">
+  <div class="q">Q1. In one sentence — what does Sentinel do?</div>
+  <div class="a">Sentinel scores every financial transaction in real time using both a machine-learning ensemble and a rule engine, decides whether to approve / review / decline it, and surfaces the decision in a live dashboard.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q2. Why a hybrid (ML + rules) instead of pure ML?</div>
+  <div class="a">ML catches subtle patterns humans haven't thought of, but it is a black box. Rules are fully explainable and demanded by auditors. Combining both gives high accuracy <em>and</em> human-readable reasons.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q3. Why three algorithms in the ML model?</div>
+  <div class="a">Random Forest is robust, Gradient Boosting is highly accurate, Logistic Regression is interpretable. The ensemble's weighted average is more accurate than any single one (bias-variance trade-off).</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q4. How does the model "learn"?</div>
+  <div class="a">During <code>fit()</code>, each algorithm adjusts its internal parameters to minimise prediction error on labelled training data. Trees split on the most informative features; logistic regression adjusts weights via gradient descent.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q5. What features does the model use?</div>
+  <div class="a">amount, country (encoded), merchant_category, device_type, hour-of-day (cyclic), is_card_present. Country and merchant become one-hot vectors; hour becomes sin/cos pair; amount is standard-scaled.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q6. How is the data stored?</div>
+  <div class="a">In a single SQLite file <code>fraud_detection.db</code> with 6 tables: roles, users, audit_logs, transaction_records, bank_accounts, cards. SQLAlchemy maps Python classes to these tables.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q7. Why SQLite and not PostgreSQL?</div>
+  <div class="a">SQLite needs zero configuration — perfect for development and demos. The code reads <code>DATABASE_URL</code> at startup, so switching to PostgreSQL is a 1-line change.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q8. How does real-time work without WebSockets?</div>
+  <div class="a">We use <strong>Server-Sent Events (SSE)</strong> — a simple HTTP streaming protocol. The browser keeps an open connection; the server pushes new transaction events on it. Lighter than WebSockets and built into HTML5.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q9. How do you handle a million transactions a day?</div>
+  <div class="a">Switch SQLite → PostgreSQL, add an index on <code>processed_at</code>, run Gunicorn with multiple workers, and put a Kafka stream in front. The ML model itself can score 10,000+ transactions per second on a single CPU.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q10. How are passwords stored?</div>
+  <div class="a">Hashed with <strong>scrypt</strong> via Werkzeug, with per-user salt. The plaintext password is never stored anywhere.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q11. How does face login work?</div>
+  <div class="a">face-api.js (a JavaScript port of FaceNet) extracts a 128-dim numeric embedding from a webcam frame. We store this on the user record. At login, we capture a fresh embedding and compute cosine similarity; if ≥ 0.6, the match passes.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q12. How do you prevent SQL injection?</div>
+  <div class="a">All queries go through SQLAlchemy ORM, which uses parameterised statements. We never concatenate user input into SQL strings.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q13. Why is the rule engine weighted only 35%?</div>
+  <div class="a">The ML model has seen far more data than any individual rule encodes, so it is the primary signal (65%). Rules are a stable safety net and provide explanations; they are not the sole decider.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q14. How do you avoid false positives that annoy real customers?</div>
+  <div class="a">By tuning the thresholds: only scores ≥ 0.85 lead to a decline; scores 0.65-0.85 only trigger a review (analyst can approve in seconds). The recall vs. false-positive trade-off is monitored continuously.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q15. How do you retrain the model on new data?</div>
+  <div class="a">Run <code>python main.py --mode train --data &lt;new_csv&gt;</code>. The new <code>fraud_model.pkl</code> is saved and picked up on next app restart. In production this is scheduled weekly via cron.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q16. What if the model file is missing or corrupt?</div>
+  <div class="a"><code>main.py</code> checks for it at startup, and if it cannot be loaded, automatically retrains from synthetic data so the system never starts in a broken state.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q17. How is admin access protected?</div>
+  <div class="a">RBAC via the <code>@admin_required</code> decorator + a global middleware that re-checks role on every request. The audit_log records every admin action.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q18. How do you handle GDPR / data deletion?</div>
+  <div class="a">Cascade deletes are configured: removing a user removes their accounts, cards. Audit logs are deliberately kept (denormalised <code>username</code> column) so the trail survives even after deletion — that's a regulatory requirement, not a bug.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q19. Where would you deploy this in production?</div>
+  <div class="a">As a Docker container behind nginx on AWS ECS / GKE / Azure Container Apps, with a managed PostgreSQL (RDS), Redis for sessions, S3 for model artefacts, and CloudWatch / Grafana for monitoring.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q20. What is the biggest limitation today and how would you fix it?</div>
+  <div class="a">Current ML uses only the current transaction's features — no user history. Adding an LSTM/Transformer that consumes the user's last N transactions (sequence model) would dramatically improve detection of account takeovers.</div>
+</div>
+
+<!-- =================== 19. CONCLUSION =================== -->
+<h2>19. Conclusion</h2>
+<p>Sentinel is a complete, production-style fraud-detection platform that brings together <strong>software engineering, data engineering, and machine learning</strong> in a single coherent system. It demonstrates:</p>
+<ul>
+  <li>How a modern Python web stack (Flask + SQLAlchemy) supports a multi-tier application.</li>
+  <li>How a hybrid ML+rules approach satisfies both accuracy and explainability requirements.</li>
+  <li>How role-based access control, audit logging and PCI-DSS-style PAN handling create an enterprise-grade security posture.</li>
+  <li>How real-time UX is achieved with simple HTTP-based streaming.</li>
+  <li>How clean module boundaries (auth / api / admin / banking / models / real_time) keep a 13,000-line codebase maintainable.</li>
+</ul>
+<p>The roadmap (deep learning, graph models, federated learning, mobile app) shows clear paths to scale this from a prototype to a multi-tenant, regulator-grade platform.</p>
+
+<footer>
+  Sentinel — Real-Time Fraud Detection System &nbsp;·&nbsp;
+  Repository: jumanalnagesh80-pixel/Fraud-Detection-Syst &nbsp;·&nbsp;
+  Detailed Project Report v2.0 &nbsp;·&nbsp; May 2026
+</footer>
+
+</body>
+</html>
