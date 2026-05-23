@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sentinel Fraud Detection System — Project Report</title>
+<style>
+  @page { size: A4; margin: 1.8cm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    line-height: 1.65;
+    color: #1f2937;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 24px;
+    background: #ffffff;
+  }
+  h1, h2, h3, h4 { color: #0f172a; }
+  h1 { font-size: 30px; margin: 14px 0 8px; }
+  h2 { font-size: 22px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #e5e7eb; color: #1d4ed8; }
+  h3 { font-size: 17px; margin: 20px 0 8px; color: #1e40af; }
+  h4 { font-size: 15px; margin: 14px 0 6px; color: #374151; }
+  p, li { font-size: 14px; }
+  ul, ol { margin: 6px 0 12px 24px; }
+  li { margin: 4px 0; }
+  code {
+    background: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+    color: #0f172a;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 12px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin: 10px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px;
+    font-size: 13.5px;
+  }
+  th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #1d4ed8; color: white; font-weight: 600; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .cover {
+    text-align: center;
+    padding: 80px 30px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 60%, #8b5cf6 100%);
+    color: white;
+    border-radius: 14px;
+    margin-bottom: 30px;
+    page-break-after: always;
+  }
+  .cover h1 { color: white; font-size: 42px; margin-bottom: 10px; letter-spacing: 1px; }
+  .cover .sub { font-size: 18px; opacity: 0.9; margin-bottom: 50px; }
+  .cover .meta { font-size: 14px; opacity: 0.85; margin-top: 36px; }
+  .cover .badge {
+    display: inline-block; padding: 6px 14px; border-radius: 20px;
+    background: rgba(255,255,255,0.18); margin: 4px;
+  }
+  .callout {
+    background: #eff6ff;
+    border-left: 5px solid #3b82f6;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .callout.warn { background: #fef3c7; border-left-color: #f59e0b; }
+  .callout.tip  { background: #ecfdf5; border-left-color: #10b981; }
+  .toc { background: #f8fafc; padding: 18px 24px; border-radius: 8px; border: 1px solid #e2e8f0; }
+  .toc ol { margin-left: 22px; }
+  .toc a { color: #1d4ed8; text-decoration: none; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 12px 0;
+  }
+  .card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .card h4 { margin-top: 0; color: #1e40af; }
+  .arch {
+    font-family: 'Consolas', monospace;
+    background: #0f172a;
+    color: #cbd5e1;
+    padding: 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    background: #dbeafe; color: #1e40af; font-size: 11.5px; margin: 0 2px;
+  }
+  .page-break { page-break-before: always; }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid #cbd5e1;
+           font-size: 12px; color: #64748b; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- =================== COVER =================== -->
+<div class="cover">
+  <h1>Sentinel</h1>
+  <div class="sub">A Real-Time Fraud Detection System</div>
+  <div class="sub" style="font-size:15px; margin-top:-30px; opacity:0.7;">
+    Powered by Machine Learning + Rule Engines
+  </div>
+
+  <div style="margin-top: 60px;">
+    <span class="badge">Python · Flask</span>
+    <span class="badge">SQLite · SQLAlchemy</span>
+    <span class="badge">scikit-learn ML</span>
+    <span class="badge">HTML · CSS · JS</span>
+  </div>
+
+  <div class="meta">
+    <strong>Project Report</strong><br>
+    Repository: jumanalnagesh80-pixel/Fraud-Detection-Syst<br>
+    Generated: May 2026
+  </div>
+</div>
+
+<!-- =================== TOC =================== -->
+<h2>Table of Contents</h2>
+<div class="toc">
+  <ol>
+    <li><a href="#overview">Project Overview — what is this?</a></li>
+    <li><a href="#problem">The problem it solves</a></li>
+    <li><a href="#tech">Technologies used (Frontend, Backend, Database, ML)</a></li>
+    <li><a href="#arch">System architecture</a></li>
+    <li><a href="#ml">What is Machine Learning? (in plain English)</a></li>
+    <li><a href="#mlmodel">The ML model used in this project</a></li>
+    <li><a href="#rules">The Rule Engine</a></li>
+    <li><a href="#db">Database — all 6 tables explained</a></li>
+    <li><a href="#flow">How a transaction flows through the system</a></li>
+    <li><a href="#features">Features list</a></li>
+    <li><a href="#run">How to run and use the project</a></li>
+    <li><a href="#files">Project file structure</a></li>
+    <li><a href="#conclusion">Conclusion & future work</a></li>
+  </ol>
+</div>
+
+<!-- =================== 1. OVERVIEW =================== -->
+<h2 id="overview">1. Project Overview — what is this?</h2>
+
+<p><strong>Sentinel</strong> is a complete software system that detects fraudulent
+financial transactions <em>as they happen</em> — in real time. Banks and payment
+companies lose billions every year to credit-card fraud, account takeovers, and
+suspicious wire transfers. This project is a working prototype of the kind of
+system those companies use to spot bad transactions and block them before money
+leaves the account.</p>
+
+<p>It combines three big ideas into one product:</p>
+<ul>
+  <li><strong>Machine learning</strong> — a model that has learned what fraud looks like from past examples.</li>
+  <li><strong>Rule engine</strong> — hand-written rules ("if amount &gt; $2,000 from a high-risk country at 3 AM…") for cases the model might miss or that we want to enforce explicitly.</li>
+  <li><strong>A web dashboard</strong> — so a human analyst or admin can watch transactions arrive in real time, review alerts, and approve or block them.</li>
+</ul>
+
+<div class="callout tip">
+  <strong>In one sentence:</strong> Sentinel takes incoming transactions, scores them
+  with both an ML model and a rule engine, and decides whether to <em>approve</em>,
+  <em>send for review</em>, or <em>decline</em> — showing the result in a live web dashboard.
+</div>
+
+<!-- =================== 2. PROBLEM =================== -->
+<h2 id="problem">2. The problem it solves</h2>
+
+<table>
+  <tr><th style="width:30%;">Problem</th><th>How Sentinel solves it</th></tr>
+  <tr><td>Fraudulent purchases drain customer accounts</td>
+      <td>Every transaction is scored within milliseconds and high-risk ones are blocked or flagged.</td></tr>
+  <tr><td>Pure rules miss new attack patterns</td>
+      <td>The ML model learns from historical data and can spot unusual patterns no human wrote a rule for.</td></tr>
+  <tr><td>Pure ML is hard to explain to auditors</td>
+      <td>The rule engine produces clear, human-readable reasons next to every decision.</td></tr>
+  <tr><td>Analysts need to review transactions</td>
+      <td>The web dashboard shows a live feed, KPIs, charts, and per-transaction detail with reasons.</td></tr>
+  <tr><td>Compliance & audit requirements</td>
+      <td>Every login, decision, and admin action is recorded in an audit log.</td></tr>
+</table>
+
+<!-- =================== 3. TECHNOLOGIES =================== -->
+<h2 id="tech">3. Technologies used</h2>
+
+<p>The project is split into four classic layers. Each layer uses well-known,
+free, open-source tools.</p>
+
+<h3>3.1 Frontend (what the user sees in the browser)</h3>
+<table>
+  <tr><th>Technology</th><th>Why it's used</th></tr>
+  <tr><td><strong>HTML5</strong></td><td>Page structure (dashboard, login, banking, admin pages).</td></tr>
+  <tr><td><strong>CSS3</strong></td><td>Modern look — colors, glass-morphism cards, responsive grids.</td></tr>
+  <tr><td><strong>Vanilla JavaScript</strong></td><td>Calls the backend APIs and updates the dashboard live (every 3 seconds).</td></tr>
+  <tr><td><strong>Chart.js</strong></td><td>Draws the line/bar charts for risk distribution and transaction volume.</td></tr>
+  <tr><td><strong>face-api.js</strong></td><td>Optional face login — captures a 128-number "face fingerprint" from the webcam.</td></tr>
+</table>
+
+<h3>3.2 Backend (the server-side logic)</h3>
+<table>
+  <tr><th>Technology</th><th>Why it's used</th></tr>
+  <tr><td><strong>Python 3.11</strong></td><td>Main programming language — easy to read and has the best ML libraries.</td></tr>
+  <tr><td><strong>Flask</strong></td><td>Lightweight web framework that handles HTTP requests and serves pages.</td></tr>
+  <tr><td><strong>Flask-Login</strong></td><td>Manages user sessions (who is logged in).</td></tr>
+  <tr><td><strong>Flask-CORS</strong></td><td>Lets the browser frontend safely call the backend APIs.</td></tr>
+  <tr><td><strong>Flask-JWT-Extended</strong></td><td>JSON Web Tokens for stateless API authentication.</td></tr>
+  <tr><td><strong>Werkzeug</strong></td><td>Industry-standard password hashing (no plain-text passwords ever stored).</td></tr>
+  <tr><td><strong>Gunicorn</strong></td><td>Production-grade web server when deployed.</td></tr>
+</table>
+
+<h3>3.3 Database (where data is permanently saved)</h3>
+<table>
+  <tr><th>Technology</th><th>Why it's used</th></tr>
+  <tr><td><strong>SQLite</strong></td><td>A single file (<code>fraud_detection.db</code>) acts as the database. No server needed — perfect for development. Can be swapped to PostgreSQL/MySQL by changing one environment variable.</td></tr>
+  <tr><td><strong>SQLAlchemy</strong></td><td>Object-Relational Mapper. Lets us write Python classes (<code>User</code>, <code>Card</code>...) and it automatically becomes SQL tables.</td></tr>
+  <tr><td><strong>Flask-Migrate (Alembic)</strong></td><td>Tracks database schema changes over time, like git for the database.</td></tr>
+</table>
+
+<h3>3.4 Machine Learning</h3>
+<table>
+  <tr><th>Technology</th><th>Why it's used</th></tr>
+  <tr><td><strong>scikit-learn</strong></td><td>The most popular ML library in Python. Provides Random Forest, Gradient Boosting, Logistic Regression — all used in this project.</td></tr>
+  <tr><td><strong>pandas</strong></td><td>Reads CSV files and shapes the data into rows and columns the model can train on.</td></tr>
+  <tr><td><strong>NumPy</strong></td><td>Fast math (arrays, vectors) — required by scikit-learn.</td></tr>
+  <tr><td><strong>pickle</strong></td><td>Saves the trained model to disk as <code>fraud_model.pkl</code> so we don't retrain every time the server starts.</td></tr>
+</table>
+
+<!-- =================== 4. ARCHITECTURE =================== -->
+<h2 id="arch" class="page-break">4. System architecture</h2>
+
+<p>Here is how the parts fit together. A request comes in from the browser at the
+top, passes through the backend, the ML model and the database, and a response
+goes back to the user.</p>
+
+<div class="arch">
++------------------------------------------------------------------------+
+|                          USER'S BROWSER                                |
+|   index.html / banking.html / admin/dashboard.html  (HTML + CSS + JS)  |
++----------------------------------+-------------------------------------+
+                                   | HTTP / fetch() / SSE
+                                   v
++------------------------------------------------------------------------+
+|                       FLASK BACKEND  (main.py)                         |
+|  +-------------------+  +-------------------+  +--------------------+  |
+|  | auth/routes.py    |  | api/routes.py     |  | admin/routes.py    |  |
+|  | (login, register) |  | (transactions,    |  | (manage users,     |  |
+|  |                   |  |  metrics, alerts) |  |  audit logs)       |  |
+|  +-------------------+  +-------------------+  +--------------------+  |
+|  +-------------------+  +-------------------+  +--------------------+  |
+|  | banking/routes.py |  | api/sse_routes.py |  | real_time/         |  |
+|  | (accounts, cards) |  | (live event feed) |  | (alerts, monitor)  |  |
+|  +-------------------+  +-------------------+  +--------------------+  |
++--------+-------------------------+-------------------------+-----------+
+         |                         |                         |
+         v                         v                         v
++----------------+  +-------------------------+  +------------------------+
+|  SQLite DB     |  |  ML MODEL (FraudModel)  |  |  RULE ENGINE           |
+|  fraud_        |  |  RandomForest +         |  |  high_amount,          |
+|  detection.db  |  |  GradientBoosting +     |  |  high_risk_country,    |
+|  (6 tables)    |  |  LogisticRegression     |  |  odd_hour, etc.        |
++----------------+  +-------------------------+  +------------------------+
+</div>
+
+<!-- =================== 5. ML EXPLANATION =================== -->
+<h2 id="ml">5. What is Machine Learning? (in plain English)</h2>
+
+<p>Imagine you want to teach a child to spot a fake $20 note. You don't write a
+list of rules — instead, you show them <em>thousands</em> of real notes and a
+few fake ones, and say "this is real, this is fake, this is real…". After enough
+examples, the child starts noticing patterns: the texture, the watermark, the
+ink color. They can now look at a brand-new note and guess "this looks fake."</p>
+
+<p>That is exactly how Machine Learning works. We give a computer many examples
+of past transactions — each one labelled "fraud" or "not fraud" — and a
+mathematical algorithm finds the patterns. After training, the computer can
+score brand-new transactions and predict the chance they are fraudulent.</p>
+
+<h3>5.1 The three steps of ML</h3>
+<div class="grid">
+  <div class="card">
+    <h4>Step 1 — Training</h4>
+    <p>Feed the algorithm thousands of past transactions. It adjusts millions of
+    internal numbers until its predictions match the known labels as closely as
+    possible.</p>
+  </div>
+  <div class="card">
+    <h4>Step 2 — Evaluation</h4>
+    <p>We test the trained model on transactions it has never seen before, to
+    measure how accurate it is (precision, recall, ROC-AUC).</p>
+  </div>
+  <div class="card">
+    <h4>Step 3 — Prediction</h4>
+    <p>Once happy, we use the model in the live system. Every new transaction
+    is fed in and the model outputs a fraud probability between 0 and 1.</p>
+  </div>
+  <div class="card">
+    <h4>Plus — Persistence</h4>
+    <p>We save the trained model to a file (<code>fraud_model.pkl</code>) so the
+    server can load it instantly on restart instead of retraining.</p>
+  </div>
+</div>
+
+<!-- =================== 6. ML MODEL =================== -->
+<h2 id="mlmodel" class="page-break">6. The ML model used in this project</h2>
+
+<p>This project does <strong>not</strong> use just one algorithm — it uses an
+<strong>ensemble</strong> (a team of three algorithms voting together). This is
+called a <strong>Voting Classifier</strong> with <em>soft voting</em>: each
+algorithm gives a probability, and the final score is the weighted average.</p>
+
+<h3>6.1 The three algorithms in the team</h3>
+<table>
+  <tr><th>Algorithm</th><th>What it does</th><th>Strength</th><th>Weight</th></tr>
+  <tr>
+    <td><strong>Random Forest</strong></td>
+    <td>Builds 120 different decision trees and averages their votes.</td>
+    <td>Robust, handles missing data, hard to fool.</td>
+    <td>2</td>
+  </tr>
+  <tr>
+    <td><strong>Gradient Boosting</strong></td>
+    <td>Builds 100 trees one at a time, each one fixing mistakes of the previous.</td>
+    <td>Very high accuracy on structured data.</td>
+    <td>2</td>
+  </tr>
+  <tr>
+    <td><strong>Logistic Regression</strong></td>
+    <td>A simple, fast linear model.</td>
+    <td>Great baseline, very interpretable, fast.</td>
+    <td>1</td>
+  </tr>
+</table>
+
+<p>The final score = <code>0.4 × RandomForest + 0.4 × GradientBoosting + 0.2 × LogisticRegression</code>.</p>
+
+<h3>6.2 The features (inputs) the model looks at</h3>
+<p>For every transaction, the system extracts these numerical features and feeds them to the model:</p>
+<ul>
+  <li><strong>Amount</strong> — how much money is being spent.</li>
+  <li><strong>Country</strong> — encoded as a number; some countries flagged high risk.</li>
+  <li><strong>Merchant category</strong> — e.g. groceries, gambling, crypto.</li>
+  <li><strong>Device type</strong> — mobile, desktop, POS terminal.</li>
+  <li><strong>Hour of day</strong> — 0 to 23. Fraud often peaks at unusual hours.</li>
+  <li><strong>Card present?</strong> — was the physical card swiped, or was it online?</li>
+</ul>
+
+<h3>6.3 Risk levels and decisions</h3>
+<p>The combined score is between 0 and 1. The model converts it to a label and a decision:</p>
+<table>
+  <tr><th>Score</th><th>Risk level</th><th>Decision</th></tr>
+  <tr><td>0.00 — 0.40</td><td><span class="pill" style="background:#dcfce7;color:#15803d;">low</span></td><td>approve</td></tr>
+  <tr><td>0.40 — 0.65</td><td><span class="pill" style="background:#fef3c7;color:#92400e;">medium</span></td><td>approve</td></tr>
+  <tr><td>0.65 — 0.85</td><td><span class="pill" style="background:#fed7aa;color:#9a3412;">high</span></td><td>review</td></tr>
+  <tr><td>0.85 — 1.00</td><td><span class="pill" style="background:#fecaca;color:#991b1b;">critical</span></td><td>decline</td></tr>
+</table>
+
+<h3>6.4 Performance metrics (on synthetic test data)</h3>
+<table>
+  <tr><th>Metric</th><th>Meaning</th><th>Typical value</th></tr>
+  <tr><td>Accuracy</td><td>% of all transactions correctly labelled.</td><td>~0.96</td></tr>
+  <tr><td>Precision</td><td>Of all flagged transactions, how many were truly fraud.</td><td>~0.85</td></tr>
+  <tr><td>Recall</td><td>Of all truly fraudulent transactions, how many were caught.</td><td>~0.80</td></tr>
+  <tr><td>ROC-AUC</td><td>Overall ability to distinguish fraud from non-fraud (1.0 = perfect).</td><td>~0.97</td></tr>
+</table>
+
+<!-- =================== 7. RULE ENGINE =================== -->
+<h2 id="rules">7. The Rule Engine</h2>
+
+<p>The ML model is powerful but it's a "black box" — it can be hard to explain
+exactly <em>why</em> a transaction was flagged. To fix that, we run a parallel
+<strong>rule engine</strong> with hand-written rules that are 100% explainable.</p>
+
+<p>The rule engine produces a second risk score (0–1) and a list of human-readable
+reasons. The final score combines both:</p>
+
+<pre>final_score = 0.65 × ML_score + 0.35 × rule_score</pre>
+
+<h3>7.1 The rules currently implemented</h3>
+<table>
+  <tr><th>Rule name</th><th>Triggers when…</th><th>Weight</th></tr>
+  <tr><td>high_amount</td><td>Amount ≥ $2,000</td><td>+0.30</td></tr>
+  <tr><td>high_risk_country</td><td>Country is NG, RU, or CN</td><td>+0.25</td></tr>
+  <tr><td>high_risk_merchant</td><td>Category is gambling, crypto, or wire_transfer</td><td>+0.20</td></tr>
+  <tr><td>odd_hour</td><td>Time is between midnight and 5 AM AND amount &gt; $300</td><td>+0.15</td></tr>
+  <tr><td>card_not_present_high_value</td><td>Online transaction (no physical card) AND amount &gt; $1,000</td><td>+0.15</td></tr>
+</table>
+
+<div class="callout">
+  Each triggered rule is shown to the analyst with a clear sentence like
+  <em>"Amount $3,500 exceeds $2,000 threshold"</em>, making the system auditable.
+</div>
+
+<!-- =================== 8. DATABASE MODELS =================== -->
+<h2 id="db" class="page-break">8. Database — all 6 tables explained</h2>
+
+<p>Everything the system remembers is stored in a single SQLite file:
+<code>fraud_detection.db</code>. Inside that file there are 6 tables. Each Python
+class in <code>src/database/models.py</code> becomes one table.</p>
+
+<h3>8.1 Table: <code>roles</code></h3>
+<p>The three permission groups in the system: <em>admin</em>, <em>analyst</em>,
+<em>viewer</em>. Each role stores a JSON map of permissions
+(e.g. <code>{"manage_users": true}</code>).</p>
+
+<h3>8.2 Table: <code>users</code></h3>
+<p>Every login account. Stores the username, email, hashed password, profile
+fields (full name, country, currency), security info (failed login count, lockout
+time, optional 2-factor settings) and an optional "face descriptor" — a list of
+128 numbers that uniquely identify the user's face for face login.</p>
+<div class="callout warn">
+  <strong>Important:</strong> Passwords are <em>never</em> stored as plain text.
+  They are hashed using scrypt via Werkzeug.
+</div>
+
+<h3>8.3 Table: <code>audit_logs</code></h3>
+<p>A timeline of every important action: logins, password changes, admin
+actions, transaction reviews. Records who did what, from which IP address, and
+when. This is what auditors and security teams need.</p>
+
+<h3>8.4 Table: <code>transaction_records</code></h3>
+<p>Every transaction the system has scored. Stores the raw transaction
+(amount, country, merchant, hour, device), the model's prediction
+(<code>fraud_probability</code>, <code>risk_level</code>, <code>decision</code>),
+which rules triggered, and how long the scoring took
+(<code>latency_ms</code>). Optionally links to the user, account, and card.</p>
+
+<h3>8.5 Table: <code>bank_accounts</code></h3>
+<p>Real-style bank accounts. Each row has an account number, IBAN, routing
+number, balance, available balance (balance minus pending holds), currency,
+country, and status (<em>active</em>, <em>frozen</em>, <em>closed</em>). One user
+can have many accounts.</p>
+
+<h3>8.6 Table: <code>cards</code></h3>
+<p>Debit and credit cards tied to bank accounts. Importantly, the full card
+number (the PAN) is <em>never</em> stored — only:</p>
+<ul>
+  <li>A masked form like <code>**** **** **** 4242</code></li>
+  <li>The last 4 digits (for display)</li>
+  <li>A SHA-256 hash of the full PAN (for matching)</li>
+  <li>A bcrypt hash of the CVV</li>
+</ul>
+<p>This mirrors real-world PCI-DSS rules. Each card also tracks a daily limit,
+amount spent today, and toggles for international/contactless/online use.</p>
+
+<!-- =================== 9. FLOW =================== -->
+<h2 id="flow">9. How a transaction flows through the system</h2>
+
+<p>This is what happens, step by step, when a single transaction arrives:</p>
+<ol>
+  <li>The transaction (e.g. "$520, US, online, 14:00, mobile") arrives at the
+      <code>POST /api/transactions</code> endpoint.</li>
+  <li>The backend checks the user is logged in (Flask-Login session).</li>
+  <li>The transaction is sent to the <strong>FraudModel</strong>:
+    <ul>
+      <li>Features are extracted by the FeatureEngineer.</li>
+      <li>The ensemble of 3 algorithms produces a probability (e.g. 0.42).</li>
+      <li>The RuleEngine runs in parallel and produces its own score (e.g. 0.30).</li>
+      <li>The final score is computed: 0.65 × 0.42 + 0.35 × 0.30 = 0.378 → "low" → "approve".</li>
+    </ul>
+  </li>
+  <li>A <code>TransactionRecord</code> row is saved to the database.</li>
+  <li>If the risk is "high" or "critical", the AlertManager creates an alert and
+      pushes a Server-Sent Event so the dashboard updates immediately.</li>
+  <li>An entry is written to <code>audit_logs</code>.</li>
+  <li>The browser polls <code>/api/transactions</code> every 3 seconds and shows
+      the new row in the live feed.</li>
+</ol>
+
+<!-- =================== 10. FEATURES =================== -->
+<h2 id="features">10. Features list</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>Authentication</h4>
+    <ul>
+      <li>Username + password login</li>
+      <li>Optional Face Login (face-api.js)</li>
+      <li>Security question recovery</li>
+      <li>Lock-out after failed attempts</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Authorization (RBAC)</h4>
+    <ul>
+      <li>Admin / Analyst / Viewer roles</li>
+      <li>Per-action permission checks</li>
+      <li>Decorators like <code>@admin_required</code></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Real-time dashboard</h4>
+    <ul>
+      <li>Live transaction feed</li>
+      <li>KPIs (volume, risk %, latency)</li>
+      <li>Charts (risk distribution, hourly volume)</li>
+      <li>Alert notifications</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Banking module</h4>
+    <ul>
+      <li>Multiple accounts per user</li>
+      <li>Debit/credit/prepaid cards</li>
+      <li>Daily spending limits</li>
+      <li>Freeze/block cards instantly</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Admin panel</h4>
+    <ul>
+      <li>List, search, edit users</li>
+      <li>Change roles & status</li>
+      <li>View audit logs</li>
+      <li>System statistics</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Reports & analytics</h4>
+    <ul>
+      <li>Time-series charts</li>
+      <li>Top countries / categories</li>
+      <li>Export to CSV</li>
+      <li>Reviewer queue</li>
+    </ul>
+  </div>
+</div>
+
+<!-- =================== 11. RUN =================== -->
+<h2 id="run" class="page-break">11. How to run and use the project</h2>
+
+<h3>11.1 First-time setup</h3>
+<pre>pip install -r requirements.txt</pre>
+
+<h3>11.2 Generate synthetic training data (optional)</h3>
+<pre>python main.py --mode generate --samples 10000</pre>
+
+<h3>11.3 Train the model and save it (optional — happens automatically on first run)</h3>
+<pre>python main.py --mode train --data data/synthetic/synthetic_transactions.csv</pre>
+
+<h3>11.4 Start the web app</h3>
+<pre>python main.py
+# open http://localhost:5000 in your browser
+# default login:  admin / admin123</pre>
+
+<h3>11.5 Inspect the database</h3>
+<pre>python scripts/db_inspect.py summary
+python scripts/db_inspect.py show users
+python scripts/db_inspect.py update users 1 country "IN"</pre>
+
+<h3>11.6 Production (Gunicorn)</h3>
+<pre>gunicorn main:app -b 0.0.0.0:5000</pre>
+
+<!-- =================== 12. FILES =================== -->
+<h2 id="files">12. Project file structure</h2>
+
+<pre style="background:#f8fafc;color:#0f172a;border:1px solid #e2e8f0;font-size:11.5px;">Fraud-Detection-Syst/
+├── main.py                       (App entry, Flask setup — 265 lines)
+├── transaction_simulator.py      (Generates fake live traffic)
+├── requirements.txt              (Python dependencies)
+├── Dockerfile, docker-compose.yml(Container deployment)
+├── fraud_detection.db            (THE DATABASE — created at first run)
+│
+├── scripts/
+│   └── db_inspect.py             (CLI helper: view/edit/export DB)
+│
+├── src/                          (BACKEND CODE)
+│   ├── auth/                     (login, register, RBAC)
+│   ├── api/                      (REST + SSE endpoints)
+│   ├── admin/                    (admin user mgmt)
+│   ├── banking/                  (accounts, cards)
+│   ├── database/models.py        (THE 6 DB TABLES — 474 lines)
+│   ├── models/                   (ML model + rule engine)
+│   ├── data_processing/          (synthetic data, feature engineering)
+│   └── real_time/                (alerts, monitor, event bus)
+│
+├── frontend/                     (BROWSER CODE)
+│   ├── index.html                (Main dashboard)
+│   ├── app.js                    (Dashboard JS — 845 lines)
+│   ├── styles.css, auth.css      (Styling)
+│   ├── banking.html, transactions.html, reports.html, notifications.html
+│   └── templates/
+│       ├── admin/dashboard.html
+│       └── auth/login.html, register.html, profile.html
+│
+├── data/
+│   ├── synthetic/                (Generated CSVs)
+│   └── raw/                      (Real datasets)
+│
+└── models/trained/               (Saved fraud_model.pkl)
+</pre>
+
+<!-- =================== 13. CONCLUSION =================== -->
+<h2 id="conclusion">13. Conclusion & future work</h2>
+
+<p><strong>Sentinel</strong> demonstrates an end-to-end, production-style fraud
+detection platform built with widely used open-source tools. It shows how three
+disciplines come together to solve a real-world business problem:</p>
+
+<ol>
+  <li><strong>Software engineering</strong> — Flask web app, REST APIs, web UI, role-based authentication, and audit logging.</li>
+  <li><strong>Data engineering</strong> — synthetic data generation, feature engineering, and a normalized relational database.</li>
+  <li><strong>Machine learning</strong> — an ensemble classifier combined with an explainable rule engine, evaluated with industry-standard metrics.</li>
+</ol>
+
+<h3>13.1 What could be added next</h3>
+<ul>
+  <li><strong>Deep learning model</strong> (LSTM / Transformer) to capture user behaviour over time.</li>
+  <li><strong>Graph neural networks</strong> to detect fraud rings — accounts that connect to each other suspiciously.</li>
+  <li><strong>Real Kafka stream</strong> instead of polling for true high-throughput pipelines.</li>
+  <li><strong>SHAP explanations</strong> on every ML decision for full interpretability.</li>
+  <li><strong>Mobile app</strong> for end users to confirm/decline suspicious transactions on their phone.</li>
+</ul>
+
+<footer>
+  Sentinel — Real-Time Fraud Detection System &nbsp;·&nbsp;
+  Repository: jumanalnagesh80-pixel/Fraud-Detection-Syst &nbsp;·&nbsp; Generated May 2026
+</footer>
+
+</body>
+</html>
