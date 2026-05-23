@@ -22,7 +22,8 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 def login():
     """Render login page."""
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        # main_dashboard is the route function name registered in main.py
+        return redirect(url_for('main_dashboard'))
     return render_template('auth/login.html')
 
 
@@ -30,7 +31,7 @@ def login():
 def register():
     """Render registration page."""
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main_dashboard'))
     return render_template('auth/register.html')
 
 
