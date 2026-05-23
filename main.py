@@ -35,15 +35,16 @@ from flask import Flask, send_from_directory, redirect, url_for
 from flask_login import login_required, current_user
 from flask_cors import CORS
 
-from src.api import create_api_blueprint, create_extras_blueprint
+from src.api import create_api_blueprint, create_extras_blueprint, create_sse_blueprint
 from src.auth import init_auth
 from src.auth.routes import auth_bp
 from src.auth.middleware import init_rbac_middleware
 from src.admin.routes import admin_bp
+from src.banking import create_banking_blueprint, seed_user_banking
 from src.database import db, init_db
 from src.data_processing import generate_synthetic_transactions
 from src.models import FraudModel
-from src.real_time import AlertManager, TransactionMonitor
+from src.real_time import AlertManager, EventBus, TransactionMonitor
 
 
 ROOT = Path(__file__).parent
@@ -89,6 +90,8 @@ def create_app() -> Flask:
     app.register_blueprint(admin_bp)
     app.register_blueprint(create_api_blueprint())
     app.register_blueprint(create_extras_blueprint())
+    app.register_blueprint(create_sse_blueprint())
+    app.register_blueprint(create_banking_blueprint())
     
     # Initialize database and create default roles/admin
     with app.app_context():
@@ -98,8 +101,16 @@ def create_app() -> Flask:
             ensure_user_columns()
             init_default_roles()
             create_default_admin()
+            # Seed banking (account + card) for the default admin so the
+            # banking page works out-of-the-box on a fresh install.
+            from src.database.models import User as _User
+            admin_user = _User.query.filter_by(username='admin').first()
+            if admin_user is not None:
+                seed_user_banking(admin_user)
+                db.session.commit()
         except Exception as e:
             log.warning(f"Role/admin initialization: {e}")
+            db.session.rollback()
 
     # try to load a pre-trained model first
     model = FraudModel()
@@ -122,6 +133,7 @@ def create_app() -> Flask:
     app.config["FRAUD_MODEL"] = model
     app.config["MONITOR"] = TransactionMonitor(window_size=500)
     app.config["ALERTS"] = AlertManager(max_alerts=200)
+    app.config["EVENT_BUS"] = EventBus(max_queue_size=200)
 
     # ------------------------------------------------------------------
     # frontend routes
@@ -156,6 +168,19 @@ def create_app() -> Flask:
     def notifications_page():
         """User notifications inbox."""
         return send_from_directory(app.static_folder, "notifications.html")
+
+    @app.get("/banking")
+    @login_required
+    def banking_page():
+        """User banking page (accounts, cards, payments)."""
+        # Lazy seed: anyone landing on this page is guaranteed an account + card.
+        try:
+            seed_user_banking(current_user)
+            db.session.commit()
+        except Exception as exc:
+            db.session.rollback()
+            log.warning("Banking seed failed for %s: %s", current_user.username, exc)
+        return send_from_directory(app.static_folder, "banking.html")
 
     return app
 

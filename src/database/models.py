@@ -86,6 +86,10 @@ class User(UserMixin, db.Model):
     # Relationships
     role = db.relationship('Role', back_populates='users')
     audit_logs = db.relationship('AuditLog', back_populates='user', lazy='dynamic')
+    bank_accounts = db.relationship('BankAccount', back_populates='user', lazy='dynamic',
+                                    cascade='all, delete-orphan')
+    cards = db.relationship('Card', back_populates='user', lazy='dynamic',
+                            cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<User {self.username}>'
@@ -246,6 +250,13 @@ class TransactionRecord(db.Model):
     processed_by = db.Column(db.String(80))  # username or 'system'
     processed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     
+    # Optional banking links (null for synthetic / simulator transactions)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
+    bank_account_id = db.Column(db.Integer, db.ForeignKey('bank_accounts.id'), index=True)
+    card_id = db.Column(db.Integer, db.ForeignKey('cards.id'), index=True)
+    merchant_name = db.Column(db.String(120))
+    currency = db.Column(db.String(10), default='USD')
+
     # Review status (for analyst workflow)
     review_status = db.Column(db.String(20), default='pending')  # pending, reviewed, escalated
     reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -275,8 +286,189 @@ class TransactionRecord(db.Model):
             'triggered_rules': self.triggered_rules,
             'latency_ms': self.latency_ms,
             'processed_at': self.processed_at.isoformat() if self.processed_at else None,
+            'user_id': self.user_id,
+            'bank_account_id': self.bank_account_id,
+            'card_id': self.card_id,
+            'merchant_name': self.merchant_name,
+            'currency': self.currency,
             'review_status': self.review_status,
             'reviewed_by': self.reviewed_by,
             'reviewed_at': self.reviewed_at.isoformat() if self.reviewed_at else None,
             'review_notes': self.review_notes,
+        }
+
+
+# ============================================================
+# BANKING MODELS - real bank accounts and cards
+# ============================================================
+
+class BankAccount(db.Model):
+    """A user's bank account.
+
+    Account numbers and IBANs are generated at creation time. Balance
+    changes happen only through approved transactions in the banking
+    routes — never directly from the UI.
+    """
+
+    __tablename__ = 'bank_accounts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+
+    # Account identification
+    account_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    iban = db.Column(db.String(34), unique=True)              # international banking number
+    routing_number = db.Column(db.String(20))                  # ABA / SWIFT-equivalent
+    nickname = db.Column(db.String(80))                        # user-chosen label
+
+    # Account properties
+    account_type = db.Column(db.String(20), default='checking', nullable=False)  # checking | savings
+    currency = db.Column(db.String(10), default='USD', nullable=False)
+    country = db.Column(db.String(10), default='US')
+    balance = db.Column(db.Float, default=0.0, nullable=False)
+    available_balance = db.Column(db.Float, default=0.0, nullable=False)  # balance minus holds
+
+    # Status
+    status = db.Column(db.String(20), default='active', nullable=False)  # active | frozen | closed
+    is_primary = db.Column(db.Boolean, default=False)
+
+    # Timestamps
+    opened_at = db.Column(db.DateTime, default=datetime.utcnow)
+    closed_at = db.Column(db.DateTime)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', back_populates='bank_accounts')
+    cards = db.relationship('Card', back_populates='account', lazy='dynamic',
+                            cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<BankAccount {self.account_number} ({self.account_type})>'
+
+    @property
+    def masked_account_number(self) -> str:
+        """Return the account number with all but the last 4 digits masked."""
+        if not self.account_number or len(self.account_number) < 5:
+            return self.account_number or ''
+        return '****' + self.account_number[-4:]
+
+    def to_dict(self, include_full_number: bool = False) -> dict:
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'account_number': self.account_number if include_full_number else self.masked_account_number,
+            'iban': self.iban,
+            'routing_number': self.routing_number,
+            'nickname': self.nickname,
+            'account_type': self.account_type,
+            'currency': self.currency,
+            'country': self.country,
+            'balance': round(self.balance, 2),
+            'available_balance': round(self.available_balance, 2),
+            'status': self.status,
+            'is_primary': self.is_primary,
+            'opened_at': self.opened_at.isoformat() if self.opened_at else None,
+            'card_count': self.cards.count() if self.id else 0,
+        }
+
+
+class Card(db.Model):
+    """A debit or credit card tied to a bank account.
+
+    Card numbers (PAN) are stored masked. Only the last 4 digits and a
+    SHA-256 hash of the full number are kept — the full PAN is never
+    persisted, mirroring real-world PCI-DSS handling.
+    """
+
+    __tablename__ = 'cards'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('bank_accounts.id'), nullable=False, index=True)
+
+    # Card identification (only the masked form and last4 are queryable)
+    card_number_masked = db.Column(db.String(25), nullable=False)        # e.g. "**** **** **** 4242"
+    last4 = db.Column(db.String(4), nullable=False, index=True)
+    pan_hash = db.Column(db.String(128))                                 # sha-256 of full PAN
+    cvv_hash = db.Column(db.String(255))                                 # bcrypt hash
+    expiry_month = db.Column(db.Integer, nullable=False)
+    expiry_year = db.Column(db.Integer, nullable=False)
+
+    # Card properties
+    card_type = db.Column(db.String(20), default='debit', nullable=False)   # debit | credit | prepaid
+    brand = db.Column(db.String(20), default='visa')                        # visa | mastercard | amex | discover
+    cardholder_name = db.Column(db.String(120))
+    nickname = db.Column(db.String(80))                                     # e.g. "Travel card"
+
+    # Limits and security
+    daily_limit = db.Column(db.Float, default=2000.0)
+    daily_spent = db.Column(db.Float, default=0.0)
+    daily_reset_at = db.Column(db.DateTime, default=datetime.utcnow)
+    international_enabled = db.Column(db.Boolean, default=False)
+    contactless_enabled = db.Column(db.Boolean, default=True)
+    online_enabled = db.Column(db.Boolean, default=True)
+
+    # Status
+    status = db.Column(db.String(20), default='active', nullable=False)
+    # active | frozen | blocked | expired | reported_lost
+    blocked_reason = db.Column(db.String(255))
+
+    # Timestamps
+    issued_at = db.Column(db.DateTime, default=datetime.utcnow)
+    activated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used_at = db.Column(db.DateTime)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', back_populates='cards')
+    account = db.relationship('BankAccount', back_populates='cards')
+
+    def __repr__(self):
+        return f'<Card {self.brand} **** {self.last4} ({self.status})>'
+
+    @property
+    def is_expired(self) -> bool:
+        now = datetime.utcnow()
+        if self.expiry_year < now.year:
+            return True
+        if self.expiry_year == now.year and self.expiry_month < now.month:
+            return True
+        return False
+
+    @property
+    def is_usable(self) -> bool:
+        return self.status == 'active' and not self.is_expired
+
+    def reset_daily_spent_if_needed(self) -> None:
+        """Roll the daily spent counter at UTC midnight."""
+        now = datetime.utcnow()
+        if not self.daily_reset_at or self.daily_reset_at.date() < now.date():
+            self.daily_spent = 0.0
+            self.daily_reset_at = now
+
+    def to_dict(self) -> dict:
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'account_id': self.account_id,
+            'card_number_masked': self.card_number_masked,
+            'last4': self.last4,
+            'expiry_month': self.expiry_month,
+            'expiry_year': self.expiry_year,
+            'expiry_display': f"{self.expiry_month:02d}/{self.expiry_year % 100:02d}",
+            'card_type': self.card_type,
+            'brand': self.brand,
+            'cardholder_name': self.cardholder_name,
+            'nickname': self.nickname,
+            'daily_limit': self.daily_limit,
+            'daily_spent': round(self.daily_spent, 2),
+            'daily_remaining': round(max(0.0, (self.daily_limit or 0.0) - (self.daily_spent or 0.0)), 2),
+            'international_enabled': self.international_enabled,
+            'contactless_enabled': self.contactless_enabled,
+            'online_enabled': self.online_enabled,
+            'status': self.status,
+            'is_expired': self.is_expired,
+            'blocked_reason': self.blocked_reason,
+            'issued_at': self.issued_at.isoformat() if self.issued_at else None,
+            'last_used_at': self.last_used_at.isoformat() if self.last_used_at else None,
         }

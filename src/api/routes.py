@@ -130,22 +130,30 @@ def _score_and_record(transaction: Dict[str, Any]) -> Dict[str, Any]:
     model = current_app.config["FRAUD_MODEL"]
     monitor = current_app.config["MONITOR"]
     alert_mgr = current_app.config["ALERTS"]
+    event_bus = current_app.config.get("EVENT_BUS")
 
     start = time.perf_counter()
     prediction = model.predict(transaction)
     latency_ms = (time.perf_counter() - start) * 1000.0
 
     result_dict = asdict(prediction)
-    monitor.record(transaction, result_dict, latency_ms)
+    record = monitor.record(transaction, result_dict, latency_ms)
 
+    alert = None
     if prediction.risk_level in {"high", "critical"}:
-        alert_mgr.raise_alert(
+        alert = alert_mgr.raise_alert(
             transaction_id=prediction.transaction_id,
             risk_level=prediction.risk_level,
             fraud_probability=prediction.fraud_probability,
             decision=prediction.decision,
             reasons=[r["reason"] for r in prediction.triggered_rules],
         )
+
+    # broadcast to any SSE subscribers so the dashboard updates in real time
+    if event_bus is not None:
+        event_bus.publish("transaction.scored", record)
+        if alert is not None:
+            event_bus.publish("transaction.alert", alert)
 
     return {
         "transaction": transaction,

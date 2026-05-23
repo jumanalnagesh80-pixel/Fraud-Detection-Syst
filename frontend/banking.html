@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Banking · Sentinel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/profile.css" />
+  <style>
+    /* --------- Banking-specific styles --------- */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .summary-card {
+      padding: 18px 20px;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+    }
+    .summary-card .label { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .summary-card .value { font-size: 26px; font-weight: 700; margin-top: 6px; }
+    .summary-card .sub { color: var(--text-mute); font-size: 12px; margin-top: 4px; }
+
+    .account-grid, .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    /* Account card */
+    .account-tile {
+      padding: 20px;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(59,130,246,0.05));
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .account-tile::before {
+      content: '';
+      position: absolute; top: -40px; right: -40px;
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139,92,246,0.4), transparent 70%);
+      pointer-events: none;
+    }
+    .account-tile .nick { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+    .account-tile .num  { font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 13px; }
+    .account-tile .balance { font-size: 32px; font-weight: 800; margin-top: 14px; }
+    .account-tile .balance .currency { font-size: 14px; color: var(--text-dim); margin-left: 6px; vertical-align: top; }
+    .account-tile .meta { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; font-size: 12px; color: var(--text-dim); }
+    .account-tile .meta span { background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); }
+
+    /* Credit card */
+    .card-tile {
+      aspect-ratio: 1.586;
+      max-width: 380px;
+      padding: 22px;
+      border-radius: 18px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 14px 40px -16px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card-tile.brand-visa       { background: linear-gradient(135deg, #1a1f71 0%, #0e2cb8 60%, #1e3eaa 100%); }
+    .card-tile.brand-mastercard { background: linear-gradient(135deg, #ff5f00 0%, #eb001b 60%, #f79e1b 100%); }
+    .card-tile.brand-amex       { background: linear-gradient(135deg, #016fd0 0%, #00b6f1 100%); }
+    .card-tile.brand-discover   { background: linear-gradient(135deg, #ff6000 0%, #f4a014 100%); }
+    .card-tile.frozen           { filter: grayscale(0.8) brightness(0.6); }
+    .card-tile.blocked          { filter: grayscale(1) brightness(0.5); }
+    .card-tile .chip {
+      width: 38px; height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #d4af37, #b8860b);
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.4);
+    }
+    .card-tile .brand-logo {
+      align-self: flex-end;
+      font-weight: 800;
+      font-size: 18px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.95;
+    }
+    .card-tile .pan {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      letter-spacing: 2px;
+      margin-top: 8px;
+    }
+    .card-tile .row {
+      display: flex; justify-content: space-between; gap: 12px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.85;
+    }
+    .card-tile .name { font-weight: 700; font-size: 13px; }
+    .card-tile .status-tag {
+      position: absolute; top: 16px; right: 16px;
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
+      backdrop-filter: blur(6px);
+    }
+    .card-controls {
+      margin-top: 14px;
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .card-block { display: flex; flex-direction: column; gap: 8px; }
+    .card-meta {
+      font-size: 12px; color: var(--text-dim);
+      display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px;
+    }
+    .card-meta strong { color: var(--text); }
+
+    .toggle-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .toggle-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s;
+    }
+    .toggle-pill input { accent-color: var(--violet); }
+    .toggle-pill:hover { border-color: var(--border-strong); }
+
+    /* Pay form */
+    .pay-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .pay-form .col-wide { grid-column: span 2; }
+    .pay-form .field-action { grid-column: 1 / -1; }
+    .pay-result-card {
+      margin-top: 16px;
+      padding: 18px;
+      border-radius: 12px;
+      background: var(--surface-strong);
+      border: 1px solid var(--border);
+      display: flex; gap: 18px; align-items: center;
+    }
+    .pay-result-card.approve { border-color: rgba(16,185,129,0.4); }
+    .pay-result-card.review,
+    .pay-result-card.held_for_review { border-color: rgba(245,158,11,0.4); }
+    .pay-result-card.declined { border-color: rgba(239,68,68,0.4); }
+    .pay-result-icon {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      display: grid; place-items: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .pay-result-card.approve .pay-result-icon { background: rgba(16,185,129,0.15); }
+    .pay-result-card.review .pay-result-icon,
+    .pay-result-card.held_for_review .pay-result-icon { background: rgba(245,158,11,0.15); }
+    .pay-result-card.declined .pay-result-icon { background: rgba(239,68,68,0.15); }
+    .pay-result-meta { flex: 1; }
+    .pay-result-title { font-weight: 700; font-size: 15px; }
+    .pay-result-sub { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+    .pay-result-rules { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .pay-result-rules li { list-style: none; font-size: 12px; color: var(--text-dim); }
+
+    /* Live stream banner */
+    .live-banner {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(16,185,129,0.15);
+      border: 1px solid rgba(16,185,129,0.4);
+      color: #6ee7b7;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .live-banner .pulse {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+    .row-flash { animation: flash 1.2s ease-out; }
+    @keyframes flash {
+      0% { background: rgba(99,102,241,0.25); }
+      100% { background: transparent; }
+    }
+
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(7,11,21,0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(440px, 92vw);
+      padding: 24px;
+      border-radius: var(--radius);
+      background: var(--surface-strong);
+      border: 1px solid var(--border-strong);
+    }
+    .modal h3 { margin-bottom: 8px; }
+    .modal p { color: var(--text-dim); font-size: 13px; margin-bottom: 14px; }
+    .reveal-card {
+      font-family: 'JetBrains Mono', monospace;
+      padding: 12px 14px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 10px;
+      letter-spacing: 2px;
+      font-size: 16px;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+    .reveal-warning {
+      font-size: 12px;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21V12h6v9"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Banking</div>
+        <div class="brand-tag">Accounts, cards, and live payments</div>
+      </div>
+    </div>
+    <div id="live-banner" class="live-banner" style="display:none;">
+      <span class="pulse"></span>
+      Real-time stream connected
+    </div>
+    <div class="topbar-actions">
+      <a href="/dashboard" class="btn btn-ghost">Dashboard</a>
+      <a href="/transactions" class="btn btn-ghost">Transactions</a>
+      <a href="/reports" class="btn btn-ghost">Reports</a>
+      <a href="/notifications" class="btn btn-ghost">Inbox</a>
+      <a href="/auth/profile" class="btn btn-ghost">Profile</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Summary -->
+    <section class="summary-grid">
+      <div class="summary-card">
+        <div class="label">Total Balance</div>
+        <div class="value" id="sum-balance">$0.00</div>
+        <div class="sub" id="sum-currency">USD across <span id="sum-accounts">0</span> accounts</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Active Cards</div>
+        <div class="value" id="sum-cards">0</div>
+        <div class="sub" id="sum-cards-sub">of 0 issued</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Today's Payments</div>
+        <div class="value" id="sum-today">0</div>
+        <div class="sub" id="sum-today-amount">$0.00 spent</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Fraud Blocked Today</div>
+        <div class="value" id="sum-blocked" style="color: var(--red);">0</div>
+        <div class="sub">declined or held for review</div>
+      </div>
+    </section>
+
+    <!-- Accounts -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">🏦 Bank Accounts</h3>
+          <p class="card-sub">Your checking and savings accounts</p>
+        </div>
+        <button class="btn btn-primary" id="btn-new-account">+ Open Account</button>
+      </div>
+      <div id="accounts-grid" class="account-grid">
+        <div class="empty-state">Loading accounts…</div>
+      </div>
+    </section>
+
+    <!-- Cards -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">💳 Cards</h3>
+          <p class="card-sub">Manage your debit and credit cards</p>
+        </div>
+        <button class="btn btn-primary" id="btn-new-card">+ Issue Card</button>
+      </div>
+      <div id="cards-grid" class="card-grid">
+        <div class="empty-state">Loading cards…</div>
+      </div>
+    </section>
+
+    <!-- Make a payment -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">💸 Make a Payment</h3>
+          <p class="card-sub">Charge a card. Fraud detection runs in real time.</p>
+        </div>
+      </div>
+      <form id="pay-form" class="pay-form">
+        <div class="field col-wide">
+          <label>Card</label>
+          <select name="card_id" id="pay-card" required></select>
+        </div>
+        <div class="field">
+          <label>Amount (USD)</label>
+          <input type="number" name="amount" min="0.01" step="0.01" value="49.95" required />
+        </div>
+        <div class="field col-wide">
+          <label>Merchant</label>
+          <input type="text" name="merchant_name" placeholder="Acme Coffee" value="Acme Coffee" required />
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select name="merchant_category">
+            <option>grocery</option><option>restaurant</option><option>fuel</option>
+            <option>online_retail</option><option>electronics</option><option>travel</option>
+            <option>entertainment</option><option>healthcare</option><option>utilities</option>
+            <option>atm_withdrawal</option><option>luxury</option>
+            <option>gambling</option><option>crypto</option><option>wire_transfer</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Country</label>
+          <select name="country">
+            <option value="US">US</option><option value="CA">CA</option>
+            <option value="GB">GB</option><option value="DE">DE</option>
+            <option value="FR">FR</option><option value="IN">IN</option>
+            <option value="JP">JP</option><option value="AU">AU</option>
+            <option value="BR">BR</option>
+            <option value="NG">NG (high risk)</option>
+            <option value="RU">RU (high risk)</option>
+            <option value="CN">CN (high risk)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Device</label>
+          <select name="device_type">
+            <option>web_chrome</option><option>web_firefox</option><option>web_safari</option>
+            <option>mobile_ios</option><option>mobile_android</option>
+            <option>pos_terminal</option><option>atm</option>
+          </select>
+        </div>
+        <div class="field field-check" style="display:flex; align-items:center;">
+          <label><input type="checkbox" name="is_card_present" /> Card present</label>
+        </div>
+        <div class="field field-action">
+          <button type="submit" class="btn btn-primary">Pay Now</button>
+        </div>
+      </form>
+      <div id="pay-result"></div>
+    </section>
+
+    <!-- Recent transactions -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h3 class="card-title">📃 Recent Activity</h3>
+          <p class="card-sub">Your last 20 transactions across all cards (live)</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Merchant</th>
+              <th>Amount</th>
+              <th>Card</th>
+              <th>Country</th>
+              <th>Risk</th>
+              <th>Decision</th>
+            </tr>
+          </thead>
+          <tbody id="recent-body">
+            <tr class="empty"><td colspan="7">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- modals -->
+  <div class="modal-backdrop" id="modal-card">
+    <div class="modal">
+      <h3>Card issued</h3>
+      <p>Save these details now — the full number and CVV are shown only once.</p>
+      <div class="reveal-card" id="reveal-pan">****</div>
+      <div style="display:flex; gap:8px;">
+        <div style="flex:1;"><div style="font-size:11px;color:var(--text-mute)">Expiry</div><div class="reveal-card" id="reveal-exp" style="margin-bottom:0;">--/--</div></div>
+        <div style="flex:1;"><div style="font-size:11px;color:var(--text-mute)">CVV</div><div class="reveal-card" id="reveal-cvv" style="margin-bottom:0;">---</div></div>
+      </div>
+      <div class="reveal-warning">⚠️ The full number and CVV will never be shown again. Copy them now.</div>
+      <div style="display:flex; gap:8px; margin-top:14px;">
+        <button class="btn btn-ghost" id="btn-copy-card">Copy number</button>
+        <button class="btn btn-primary" id="btn-close-card-modal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    /* ============================================================
+       Banking page logic
+       ============================================================ */
+    const STATE = { accounts: [], cards: [], recent: [], summary: {} };
+
+    // ---------- helpers ----------
+    function $(id) { return document.getElementById(id); }
+    function fmt$(v, currency = 'USD') {
+      try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(v || 0));
+      } catch { return '$' + Number(v || 0).toFixed(2); }
+    }
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, ch =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+    function toast(msg, type = 'info') {
+      const c = $('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      requestAnimationFrame(() => t.classList.add('show'));
+      setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    // ---------- initial load ----------
+    async function loadOverview() {
+      try {
+        const r = await fetch('/api/banking/overview');
+        if (!r.ok) throw new Error('overview failed');
+        const data = await r.json();
+        STATE.accounts = data.accounts || [];
+        STATE.cards = data.cards || [];
+        STATE.recent = data.recent_transactions || [];
+        STATE.summary = data.summary || {};
+        renderAll();
+      } catch (e) {
+        console.error(e);
+        toast('Failed to load banking overview', 'error');
+      }
+    }
+
+    function renderAll() {
+      renderSummary();
+      renderAccounts();
+      renderCards();
+      renderRecent();
+      populatePayCardSelect();
+    }
+
+    // ---------- SUMMARY ----------
+    function renderSummary() {
+      const s = STATE.summary;
+      $('sum-balance').textContent = fmt$(s.total_balance, s.currency);
+      $('sum-currency').innerHTML = `${s.currency || 'USD'} across <span>${s.account_count || 0}</span> accounts`;
+      $('sum-cards').textContent = s.active_cards || 0;
+      $('sum-cards-sub').textContent = `of ${s.total_cards || 0} issued`;
+
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const todayTxns = STATE.recent.filter(t => new Date(t.processed_at) >= today);
+      const approved = todayTxns.filter(t => t.decision === 'approved');
+      const blocked = todayTxns.filter(t =>
+        t.decision === 'declined' || t.decision === 'held_for_review' || t.risk_level === 'critical'
+      );
+      $('sum-today').textContent = approved.length;
+      $('sum-today-amount').textContent = `${fmt$(approved.reduce((s, t) => s + (t.amount || 0), 0))} spent`;
+      $('sum-blocked').textContent = blocked.length;
+    }
+
+    // ---------- ACCOUNTS ----------
+    function renderAccounts() {
+      const grid = $('accounts-grid');
+      if (!STATE.accounts.length) {
+        grid.innerHTML = `<div class="empty-state">No accounts yet. Click <strong>+ Open Account</strong>.</div>`;
+        return;
+      }
+      grid.innerHTML = STATE.accounts.map(a => `
+        <div class="account-tile" data-account-id="${a.id}">
+          <div class="nick">${escapeHtml(a.nickname || 'Account')}</div>
+          <div class="num">${escapeHtml(a.account_number)} · ${escapeHtml(a.iban || '')}</div>
+          <div class="balance">${fmt$(a.balance, a.currency)}<span class="currency">${a.currency}</span></div>
+          ${a.available_balance !== a.balance ? `<div class="num" style="margin-top:6px;">Available: ${fmt$(a.available_balance, a.currency)}</div>` : ''}
+          <div class="meta">
+            <span>${escapeHtml(a.account_type)}</span>
+            <span>${escapeHtml(a.country)}</span>
+            <span class="badge badge-${a.status === 'active' ? 'approve' : a.status === 'frozen' ? 'medium' : 'declined'}">${escapeHtml(a.status)}</span>
+            ${a.is_primary ? '<span style="color:var(--violet)">primary</span>' : ''}
+            <span>Routing ${escapeHtml(a.routing_number || '—')}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ---------- CARDS ----------
+    function renderCards() {
+      const grid = $('cards-grid');
+      if (!STATE.cards.length) {
+        grid.innerHTML = `<div class="empty-state">No cards yet. Click <strong>+ Issue Card</strong>.</div>`;
+        return;
+      }
+      grid.innerHTML = STATE.cards.map(c => {
+        const cls = (c.status === 'active' && !c.is_expired) ? '' : c.status;
+        const limitPct = c.daily_limit > 0
+          ? Math.min(100, (c.daily_spent / c.daily_limit) * 100) : 0;
+        return `
+          <div class="card-block">
+            <div class="card-tile brand-${escapeHtml(c.brand)} ${cls}">
+              <span class="status-tag">${escapeHtml(c.status)}${c.is_expired ? ' · expired' : ''}</span>
+              <div class="chip"></div>
+              <div class="pan">${escapeHtml(c.card_number_masked)}</div>
+              <div class="row">
+                <div>
+                  <div style="opacity:0.6;font-size:9px;">Cardholder</div>
+                  <div class="name">${escapeHtml(c.cardholder_name || '—')}</div>
+                </div>
+                <div>
+                  <div style="opacity:0.6;font-size:9px;">Expires</div>
+                  <div class="name">${escapeHtml(c.expiry_display)}</div>
+                </div>
+                <div class="brand-logo">${escapeHtml(c.brand)}</div>
+              </div>
+            </div>
+            <div class="card-meta">
+              <div><strong>${escapeHtml(c.nickname || '')}</strong> · ${escapeHtml(c.card_type)}</div>
+              <div>Daily ${fmt$(c.daily_spent)} / ${fmt$(c.daily_limit)} (${limitPct.toFixed(0)}%)</div>
+            </div>
+            <div class="toggle-grid">
+              <label class="toggle-pill"><input type="checkbox" data-toggle="international" data-card="${c.id}" ${c.international_enabled ? 'checked' : ''}/>International</label>
+              <label class="toggle-pill"><input type="checkbox" data-toggle="contactless" data-card="${c.id}" ${c.contactless_enabled ? 'checked' : ''}/>Contactless</label>
+              <label class="toggle-pill"><input type="checkbox" data-toggle="online" data-card="${c.id}" ${c.online_enabled ? 'checked' : ''}/>Online</label>
+            </div>
+            <div class="card-controls">
+              ${c.status === 'active' ? `<button class="btn btn-ghost" data-action="freeze" data-card="${c.id}">❄ Freeze</button>` : ''}
+              ${c.status === 'frozen' ? `<button class="btn btn-ghost" data-action="unfreeze" data-card="${c.id}">▶ Unfreeze</button>` : ''}
+              ${c.status === 'blocked' ? `<button class="btn btn-ghost" disabled style="opacity:0.5;">⛔ Blocked</button>` : ''}
+              <button class="btn btn-ghost" data-action="limit" data-card="${c.id}">$ Limit</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', (e) => onCardAction(btn.dataset.action, btn.dataset.card));
+      });
+      grid.querySelectorAll('input[data-toggle]').forEach(input => {
+        input.addEventListener('change', (e) => onToggle(input.dataset.card, input.dataset.toggle, input.checked));
+      });
+    }
+
+    async function onCardAction(action, cardId) {
+      try {
+        if (action === 'freeze') {
+          await fetch(`/api/banking/cards/${cardId}/freeze`, { method: 'POST' });
+          toast('Card frozen', 'success');
+        } else if (action === 'unfreeze') {
+          const r = await fetch(`/api/banking/cards/${cardId}/unfreeze`, { method: 'POST' });
+          if (!r.ok) {
+            const e = await r.json();
+            toast(e.error || 'Could not unfreeze', 'error'); return;
+          }
+          toast('Card unfrozen', 'success');
+        } else if (action === 'limit') {
+          const v = prompt('New daily limit (USD):');
+          if (!v) return;
+          const r = await fetch(`/api/banking/cards/${cardId}/limit`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ daily_limit: Number(v) }),
+          });
+          if (!r.ok) { toast('Failed to update limit', 'error'); return; }
+          toast('Daily limit updated', 'success');
+        }
+        loadOverview();
+      } catch (e) { toast('Action failed', 'error'); }
+    }
+
+    async function onToggle(cardId, setting, enabled) {
+      try {
+        await fetch(`/api/banking/cards/${cardId}/toggle`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setting, enabled }),
+        });
+        toast(`${setting} ${enabled ? 'enabled' : 'disabled'}`, 'success');
+      } catch (e) { toast('Failed to update setting', 'error'); }
+    }
+
+    // ---------- PAY FORM ----------
+    function populatePayCardSelect() {
+      const sel = $('pay-card');
+      const usable = STATE.cards.filter(c => c.status === 'active' && !c.is_expired);
+      if (!usable.length) {
+        sel.innerHTML = '<option value="">No active cards — issue one above</option>';
+        return;
+      }
+      sel.innerHTML = usable.map(c =>
+        `<option value="${c.id}">${escapeHtml(c.brand.toUpperCase())} ${escapeHtml(c.card_number_masked)} (${escapeHtml(c.nickname || c.card_type)})</option>`
+      ).join('');
+    }
+
+    document.getElementById('pay-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const body = {
+        card_id: Number(fd.get('card_id')),
+        amount: Number(fd.get('amount')),
+        merchant_name: fd.get('merchant_name'),
+        merchant_category: fd.get('merchant_category'),
+        country: fd.get('country'),
+        device_type: fd.get('device_type'),
+        is_card_present: !!fd.get('is_card_present'),
+      };
+      try {
+        const r = await fetch('/api/banking/pay', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        renderPayResult(data, body);
+        loadOverview();
+      } catch (err) {
+        toast('Payment failed', 'error');
+      }
+    });
+
+    function renderPayResult(data, body) {
+      const out = $('pay-result');
+      const decision = data.decision || 'declined';
+      const fraud = data.fraud || {};
+      const txn = data.transaction || {};
+      const icons = { approved: '✅', held_for_review: '⚠️', declined: '⛔', review: '⚠️' };
+      const titles = {
+        approved: 'Payment approved',
+        held_for_review: 'Held for review',
+        declined: 'Payment declined',
+      };
+      const rules = (fraud.triggered_rules || data.transaction?.triggered_rules || []).map(r =>
+        `<li><strong>${escapeHtml(r.name)}</strong> · ${escapeHtml(r.reason)}</li>`
+      ).join('');
+
+      out.innerHTML = `
+        <div class="pay-result-card ${decision}">
+          <div class="pay-result-icon">${icons[decision] || '·'}</div>
+          <div class="pay-result-meta">
+            <div class="pay-result-title">${titles[decision] || decision}</div>
+            <div class="pay-result-sub">
+              ${fmt$(body.amount)} at ${escapeHtml(body.merchant_name)} · ${escapeHtml(body.country)}
+              · ${escapeHtml(body.merchant_category)}
+              ${fraud.fraud_probability != null ? ` · risk ${(fraud.fraud_probability*100).toFixed(0)}% (${fraud.risk_level})` : ''}
+              ${fraud.latency_ms != null ? ` · ${fraud.latency_ms}ms` : ''}
+            </div>
+            ${data.error ? `<div style="margin-top:6px;color:var(--red);font-size:13px;">${escapeHtml(data.error)}</div>` : ''}
+            ${rules ? `<ul class="pay-result-rules">${rules}</ul>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // ---------- RECENT ----------
+    function renderRecent() {
+      const tbody = $('recent-body');
+      if (!STATE.recent.length) {
+        tbody.innerHTML = `<tr class="empty"><td colspan="7">No transactions yet. Make a payment above.</td></tr>`;
+        return;
+      }
+      const cardById = Object.fromEntries(STATE.cards.map(c => [c.id, c]));
+      tbody.innerHTML = STATE.recent.slice(0, 20).map(t => {
+        const card = cardById[t.card_id];
+        const decision = t.decision || 'approved';
+        const decisionBadge = decision === 'approved' ? 'approve' :
+                              decision === 'declined' ? 'declined' : 'review';
+        return `
+          <tr data-txn="${escapeHtml(t.transaction_id)}">
+            <td>${escapeHtml(new Date(t.processed_at).toLocaleString())}</td>
+            <td>${escapeHtml(t.merchant_name || '—')}</td>
+            <td>${fmt$(t.amount, t.currency || 'USD')}</td>
+            <td>${card ? `${escapeHtml(card.brand.toUpperCase())} **** ${escapeHtml(card.last4)}` : '—'}</td>
+            <td>${escapeHtml(t.country || '—')}</td>
+            <td><span class="badge badge-${escapeHtml(t.risk_level || 'low')}"><i></i>${escapeHtml(t.risk_level || 'low')}</span></td>
+            <td><span class="badge badge-${decisionBadge}">${escapeHtml(decision)}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ---------- new account / new card buttons ----------
+    $('btn-new-account').addEventListener('click', async () => {
+      const nickname = prompt('Account nickname (e.g. "Vacation Savings"):');
+      if (!nickname) return;
+      const account_type = confirm('OK = checking, Cancel = savings') ? 'checking' : 'savings';
+      const r = await fetch('/api/banking/accounts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname, account_type }),
+      });
+      if (!r.ok) { toast('Failed to open account', 'error'); return; }
+      toast('Account opened', 'success');
+      loadOverview();
+    });
+
+    $('btn-new-card').addEventListener('click', async () => {
+      if (!STATE.accounts.length) { toast('Open an account first', 'error'); return; }
+      const account_id = STATE.accounts[0].id;
+      const brand = prompt('Card brand: visa / mastercard / amex / discover', 'visa') || 'visa';
+      const card_type = confirm('OK = debit, Cancel = credit') ? 'debit' : 'credit';
+      const r = await fetch('/api/banking/cards', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_id, brand: brand.toLowerCase(), card_type }),
+      });
+      const data = await r.json();
+      if (!r.ok) { toast(data.error || 'Failed to issue card', 'error'); return; }
+
+      // show modal once with full PAN + CVV
+      $('reveal-pan').textContent = data.card.card_number;
+      $('reveal-exp').textContent = data.card.expiry_display;
+      $('reveal-cvv').textContent = data.card.cvv;
+      $('btn-copy-card').onclick = () => {
+        navigator.clipboard?.writeText(data.card.card_number);
+        toast('Card number copied', 'success');
+      };
+      $('modal-card').classList.add('open');
+      loadOverview();
+    });
+
+    $('btn-close-card-modal').addEventListener('click', () => {
+      $('modal-card').classList.remove('open');
+      // wipe revealed values from DOM
+      $('reveal-pan').textContent = '****';
+      $('reveal-cvv').textContent = '---';
+    });
+
+    // ---------- REAL-TIME SSE ----------
+    let stream = null;
+    function connectStream() {
+      try {
+        stream = new EventSource('/api/stream');
+        stream.addEventListener('connected', () => {
+          $('live-banner').style.display = 'inline-flex';
+        });
+        stream.addEventListener('banking.payment', (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            const payload = msg.data || {};
+            if (payload.user_id !== window.__USER_ID__) return;
+            // Only refresh when our own user is involved.
+            loadOverview();
+          } catch (_) {}
+        });
+        stream.addEventListener('card.blocked', (e) => {
+          const msg = JSON.parse(e.data);
+          if ((msg.data || {}).user_id !== window.__USER_ID__) return;
+          toast(`Card **** ${msg.data.last4} was auto-blocked due to fraud`, 'error');
+          loadOverview();
+        });
+        stream.addEventListener('error', () => {
+          $('live-banner').style.display = 'none';
+          // EventSource auto-reconnects; nothing else to do.
+        });
+      } catch (_) {}
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const r = await fetch('/auth/api/me');
+        if (r.ok) {
+          const data = await r.json();
+          window.__USER_ID__ = data.user?.id;
+        }
+      } catch (_) {}
+    }
+
+    (async function init() {
+      await loadCurrentUser();
+      await loadOverview();
+      connectStream();
+    })();
+  </script>
+</body>
+</html>
