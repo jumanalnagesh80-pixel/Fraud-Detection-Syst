@@ -70,8 +70,8 @@
   <div class="meta">
     <strong style="font-size:16px;">Detailed Project Report</strong><br><br>
     Repository: jumanalnagesh80-pixel/Fraud-Detection-Syst<br>
-    Document version 2.0 &nbsp;·&nbsp; May 2026<br>
-    Includes DFD Levels 0/1/2, full Technical Stack, ML Models, Real-Time Flow, Future Scope, Q&amp;A
+    Document version 3.0 &nbsp;·&nbsp; May 2026<br>
+    Includes DFD Levels 0/1/2, full Tech Stack, ML Models, Real-Time Flow, Requirements, Test Cases, UI Screenshots, Future Scope, Q&amp;A
   </div>
 </div>
 
@@ -104,6 +104,10 @@
     <li>Frontend &amp; UI/UX</li>
     <li>Deployment &amp; DevOps</li>
     <li>How To Use The Project (step-by-step)</li>
+    <li><strong>System Requirements (hardware, software, browser, network)</strong></li>
+    <li><strong>Installation, Setup &amp; Configuration — full guide</strong></li>
+    <li><strong>Test Cases — full coverage matrix</strong></li>
+    <li><strong>UI Screenshots — page-by-page mockups</strong></li>
     <li><strong>Future Scope &amp; Real-World Use Cases</strong></li>
     <li><strong>Project Q&amp;A — viva / interview style</strong></li>
     <li>Conclusion</li>
@@ -1048,8 +1052,690 @@ python main.py</pre>
   <li><strong>Inspect DB any time:</strong> <code>python scripts/db_inspect.py summary</code></li>
 </ol>
 
-<!-- =================== 17. FUTURE =================== -->
-<h2>17. Future Scope &amp; Real-World Use Cases</h2>
+<!-- =================== 17. SYSTEM REQUIREMENTS =================== -->
+<h2>17. System Requirements</h2>
+
+<h3>17.1 Hardware Requirements</h3>
+<table>
+  <tr><th>Resource</th><th>Minimum (development)</th><th>Recommended (production)</th></tr>
+  <tr><td>CPU</td><td>2 cores @ 2.0 GHz (x86_64 / ARM64)</td><td>4–8 cores @ 2.5 GHz</td></tr>
+  <tr><td>RAM</td><td>2 GB</td><td>8 GB</td></tr>
+  <tr><td>Disk</td><td>500 MB free (code + venv) + ~100 MB DB</td><td>10+ GB SSD (DB will grow with traffic)</td></tr>
+  <tr><td>Network</td><td>Any (offline development supported)</td><td>100 Mbps with low latency to clients</td></tr>
+  <tr><td>GPU</td><td>Not required</td><td>Not required (scikit-learn is CPU-only)</td></tr>
+</table>
+
+<h3>17.2 Operating System Compatibility</h3>
+<table>
+  <tr><th>OS</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Linux (Ubuntu 22.04, Debian 12, Amazon Linux 2023, RHEL 9)</td><td><span class="pill" style="background:#dcfce7;color:#166534;">supported</span></td><td>Recommended for production. Tested in CI.</td></tr>
+  <tr><td>macOS 12+ (Intel and Apple Silicon)</td><td><span class="pill" style="background:#dcfce7;color:#166534;">supported</span></td><td>See <code>setup_mac.sh</code> for one-click bootstrap.</td></tr>
+  <tr><td>Windows 10 / 11</td><td><span class="pill" style="background:#fef3c7;color:#92400e;">works</span></td><td>Use WSL 2 + Ubuntu for the smoothest experience.</td></tr>
+  <tr><td>Docker Desktop / Docker Engine 24+</td><td><span class="pill" style="background:#dcfce7;color:#166534;">supported</span></td><td>Single command: <code>docker compose up</code>.</td></tr>
+</table>
+
+<h3>17.3 Software Prerequisites</h3>
+<table>
+  <tr><th>Tool</th><th>Version</th><th>Used for</th><th>Mandatory?</th></tr>
+  <tr><td>Python</td><td>3.11.x (3.10 also works)</td><td>Backend runtime</td><td>Yes</td></tr>
+  <tr><td>pip</td><td>23+</td><td>Install Python deps</td><td>Yes</td></tr>
+  <tr><td>git</td><td>2.30+</td><td>Clone repo</td><td>Yes</td></tr>
+  <tr><td>SQLite</td><td>3.30+ (bundled with Python)</td><td>Default DB engine</td><td>Yes</td></tr>
+  <tr><td>PostgreSQL</td><td>14+</td><td>Production DB (optional swap)</td><td>No</td></tr>
+  <tr><td>Docker</td><td>24+</td><td>Containerised deploy</td><td>No</td></tr>
+  <tr><td>Node.js</td><td>—</td><td><em>Not used</em>; frontend uses CDN libraries only</td><td>No</td></tr>
+  <tr><td>Web browser</td><td>See 17.5</td><td>Use the dashboard</td><td>Yes (for UI)</td></tr>
+</table>
+
+<h3>17.4 Python Dependencies (<code>requirements.txt</code>)</h3>
+<table>
+  <tr><th>Package</th><th>Version range</th><th>Why</th></tr>
+  <tr><td>flask</td><td>3.0.x</td><td>Web framework</td></tr>
+  <tr><td>flask-sqlalchemy</td><td>3.1.x</td><td>ORM integration</td></tr>
+  <tr><td>flask-login</td><td>0.6.x</td><td>Session-based authentication</td></tr>
+  <tr><td>flask-jwt-extended</td><td>4.6.x</td><td>JWT for API auth</td></tr>
+  <tr><td>flask-cors</td><td>4.0.x</td><td>Cross-origin frontend calls</td></tr>
+  <tr><td>flask-migrate</td><td>4.0.x</td><td>Alembic-based DB migrations</td></tr>
+  <tr><td>werkzeug</td><td>3.0.x</td><td>Password hashing (scrypt)</td></tr>
+  <tr><td>sqlalchemy</td><td>2.0.x</td><td>SQL toolkit (under the hood)</td></tr>
+  <tr><td>scikit-learn</td><td>1.4.x</td><td>ML algorithms &amp; metrics</td></tr>
+  <tr><td>pandas</td><td>2.2.x</td><td>DataFrame manipulation</td></tr>
+  <tr><td>numpy</td><td>1.26.x</td><td>Numerical arrays</td></tr>
+  <tr><td>joblib</td><td>1.3.x</td><td>Model serialisation</td></tr>
+  <tr><td>gunicorn</td><td>21.x</td><td>Production WSGI server</td></tr>
+  <tr><td>python-dotenv</td><td>1.0.x</td><td>Load <code>.env</code> config</td></tr>
+  <tr><td>requests</td><td>2.31.x</td><td>HTTP client (used in simulator)</td></tr>
+</table>
+
+<h3>17.5 Browser Compatibility (Frontend)</h3>
+<table>
+  <tr><th>Browser</th><th>Minimum version</th><th>Notes</th></tr>
+  <tr><td>Chrome / Edge (Chromium)</td><td>108+</td><td>Recommended; full SSE + face-api support</td></tr>
+  <tr><td>Firefox</td><td>110+</td><td>Full support</td></tr>
+  <tr><td>Safari</td><td>16+</td><td>Full support; webcam permission required for face login</td></tr>
+  <tr><td>Internet Explorer</td><td>—</td><td><span class="pill" style="background:#fecaca;color:#991b1b;">not supported</span></td></tr>
+  <tr><td>Mobile Safari / Chrome</td><td>iOS 16 / Android 12+</td><td>Responsive UI works; face login depends on device camera</td></tr>
+</table>
+
+<h3>17.6 Network &amp; Port Requirements</h3>
+<table>
+  <tr><th>Port / Resource</th><th>Direction</th><th>Purpose</th></tr>
+  <tr><td>5000 (TCP)</td><td>Inbound</td><td>Flask app default. Configurable via <code>--port</code> or <code>PORT</code> env.</td></tr>
+  <tr><td>5432 (TCP)</td><td>Outbound</td><td>To PostgreSQL when used.</td></tr>
+  <tr><td>fonts.googleapis.com, fonts.gstatic.com</td><td>Outbound HTTPS</td><td>Inter / JetBrains Mono fonts (CDN).</td></tr>
+  <tr><td>cdn.jsdelivr.net</td><td>Outbound HTTPS</td><td>Chart.js, face-api.js libraries.</td></tr>
+  <tr><td>—</td><td>—</td><td>Project works fully offline once dependencies are cached and CDN is mirrored.</td></tr>
+</table>
+
+<h3>17.7 Functional Requirements</h3>
+<ol>
+  <li><strong>FR-01</strong> — System shall allow users to register, login, and logout.</li>
+  <li><strong>FR-02</strong> — System shall accept transactions through REST API.</li>
+  <li><strong>FR-03</strong> — System shall classify each transaction into one of 4 risk levels.</li>
+  <li><strong>FR-04</strong> — System shall persist all transactions in the database.</li>
+  <li><strong>FR-05</strong> — System shall stream new transaction events to dashboards in real time.</li>
+  <li><strong>FR-06</strong> — System shall enforce role-based authorization on every protected endpoint.</li>
+  <li><strong>FR-07</strong> — System shall log every authentication and admin event.</li>
+  <li><strong>FR-08</strong> — System shall allow analysts to review and update transaction status.</li>
+  <li><strong>FR-09</strong> — System shall allow admins to manage users and roles.</li>
+  <li><strong>FR-10</strong> — System shall train, save, and load ML models from disk.</li>
+  <li><strong>FR-11</strong> — System shall provide synthetic data generation for testing.</li>
+  <li><strong>FR-12</strong> — System shall support optional Face Authentication for login.</li>
+  <li><strong>FR-13</strong> — System shall provide accounts and cards management with daily limits.</li>
+  <li><strong>FR-14</strong> — System shall expose live KPIs (volume, risk %, latency) on a dashboard.</li>
+  <li><strong>FR-15</strong> — System shall expose a CLI helper for DB inspection and edits.</li>
+</ol>
+
+<h3>17.8 Non-Functional Requirements</h3>
+<table>
+  <tr><th>NFR ID</th><th>Category</th><th>Requirement</th><th>Target</th></tr>
+  <tr><td>NFR-01</td><td>Performance</td><td>Transaction scoring latency</td><td>p95 &lt; 50 ms</td></tr>
+  <tr><td>NFR-02</td><td>Performance</td><td>Dashboard refresh latency</td><td>&lt; 100 ms after event</td></tr>
+  <tr><td>NFR-03</td><td>Scalability</td><td>Concurrent dashboard users</td><td>≥ 50 per node</td></tr>
+  <tr><td>NFR-04</td><td>Throughput</td><td>Transactions scored per second</td><td>≥ 200 / sec / worker</td></tr>
+  <tr><td>NFR-05</td><td>Reliability</td><td>App uptime</td><td>≥ 99.5 %</td></tr>
+  <tr><td>NFR-06</td><td>Security</td><td>Password storage</td><td>scrypt hash + salt; never plaintext</td></tr>
+  <tr><td>NFR-07</td><td>Security</td><td>Card PAN storage</td><td>Mask + sha-256 hash + last4 only</td></tr>
+  <tr><td>NFR-08</td><td>Compliance</td><td>Audit log retention</td><td>≥ 1 year (configurable)</td></tr>
+  <tr><td>NFR-09</td><td>Maintainability</td><td>Codebase modularity</td><td>Blueprint-per-domain</td></tr>
+  <tr><td>NFR-10</td><td>Portability</td><td>Single Docker image</td><td>&lt; 500 MB</td></tr>
+  <tr><td>NFR-11</td><td>Usability</td><td>Browser compatibility</td><td>Last 2 versions of Chrome / Firefox / Edge / Safari</td></tr>
+  <tr><td>NFR-12</td><td>ML Quality</td><td>Model ROC-AUC on synthetic test set</td><td>≥ 0.95</td></tr>
+</table>
+
+<!-- =================== 18. INSTALLATION =================== -->
+<h2>18. Installation, Setup &amp; Configuration — full guide</h2>
+
+<h3>18.1 Step 1 — Clone the repository</h3>
+<pre>git clone https://github.com/jumanalnagesh80-pixel/Fraud-Detection-Syst.git
+cd Fraud-Detection-Syst</pre>
+
+<h3>18.2 Step 2 — Create &amp; activate a virtual environment</h3>
+<pre># Linux / macOS
+python3.11 -m venv .venv
+source .venv/bin/activate
+
+# Windows (PowerShell)
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1</pre>
+
+<h3>18.3 Step 3 — Install Python dependencies</h3>
+<pre>pip install --upgrade pip
+pip install -r requirements.txt</pre>
+
+<h3>18.4 Step 4 — Configure environment variables (optional)</h3>
+<p>Create a <code>.env</code> file in the project root:</p>
+<pre>SECRET_KEY=please-change-me-in-production
+JWT_SECRET_KEY=please-change-me-too
+DATABASE_URL=sqlite:///fraud_detection.db
+PORT=5000
+FRAUD_AUTOLOAD=0</pre>
+
+<h3>18.5 Step 5 — Initialise the database</h3>
+<pre>python scripts/db_inspect.py init</pre>
+<p>This creates <code>fraud_detection.db</code>, seeds the 3 default roles
+(<em>admin</em>, <em>analyst</em>, <em>viewer</em>), and creates a default admin
+account (<code>admin / admin123</code>).</p>
+
+<h3>18.6 Step 6 — Generate synthetic data &amp; train model (optional)</h3>
+<pre>python main.py --mode generate --samples 10000 --fraud-rate 0.05
+python main.py --mode train --data data/synthetic/synthetic_transactions.csv</pre>
+<p>If you skip this step, the app trains automatically on first launch — adds about 5 seconds.</p>
+
+<h3>18.7 Step 7 — Run the app</h3>
+<pre>python main.py
+# open http://localhost:5000</pre>
+
+<h3>18.8 Step 8 — (Production) Run with Gunicorn</h3>
+<pre>FRAUD_AUTOLOAD=1 gunicorn main:app -b 0.0.0.0:5000 -w 4 --timeout 60</pre>
+
+<h3>18.9 Step 9 — Docker deployment (alternative)</h3>
+<pre>docker compose up --build
+# All-in-one: app + (optional) Postgres on http://localhost:5000</pre>
+
+<h3>18.10 Step 10 — Smoke test</h3>
+<pre>curl -s http://localhost:5000/api/metrics | head -200
+# expected: JSON with KPI snapshot</pre>
+
+<h3>18.11 Common installation problems &amp; fixes</h3>
+<table>
+  <tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+  <tr><td><code>ModuleNotFoundError: flask</code></td><td>venv not active</td><td><code>source .venv/bin/activate</code> then re-install</td></tr>
+  <tr><td>Port 5000 already in use</td><td>macOS AirPlay receiver, or another app</td><td><code>python main.py --port 5050</code> or disable AirPlay</td></tr>
+  <tr><td>Webcam doesn't open for face login</td><td>Browser permission denied</td><td>Click the camera icon in URL bar → Allow</td></tr>
+  <tr><td><code>OperationalError: no such table</code></td><td>DB not initialised</td><td><code>python scripts/db_inspect.py init</code></td></tr>
+  <tr><td>Slow first request</td><td>Model retraining on startup</td><td>Run <code>--mode train</code> once and keep <code>fraud_model.pkl</code></td></tr>
+</table>
+
+<!-- =================== 19. TEST CASES =================== -->
+<h2>19. Test Cases — full coverage matrix</h2>
+<p>The test cases below cover authentication, authorization, the ML pipeline,
+the rule engine, the database layer, the REST API, the dashboard, banking,
+and edge cases. Each row gives a unique ID, the module under test, the inputs,
+the expected result, and the priority.</p>
+
+<h3>19.1 Authentication test cases</h3>
+<table>
+  <tr><th>ID</th><th>Module</th><th>Description</th><th>Input</th><th>Expected</th><th>Priority</th></tr>
+  <tr><td>TC-AUTH-01</td><td>auth/login</td><td>Login with correct credentials</td><td>admin / admin123</td><td>200, redirect to /dashboard, session cookie set</td><td>High</td></tr>
+  <tr><td>TC-AUTH-02</td><td>auth/login</td><td>Login with wrong password</td><td>admin / wrong</td><td>401, error message, failed_login_attempts++</td><td>High</td></tr>
+  <tr><td>TC-AUTH-03</td><td>auth/login</td><td>Account lockout after 5 failures</td><td>5× wrong password</td><td>Account locked for 15 min</td><td>High</td></tr>
+  <tr><td>TC-AUTH-04</td><td>auth/register</td><td>Create new user</td><td>unique username, valid email, strong pw</td><td>201, user row inserted, role=viewer</td><td>High</td></tr>
+  <tr><td>TC-AUTH-05</td><td>auth/register</td><td>Duplicate username</td><td>existing username</td><td>409 conflict</td><td>Med</td></tr>
+  <tr><td>TC-AUTH-06</td><td>auth/register</td><td>Weak password</td><td>"abc"</td><td>400, validation error</td><td>Med</td></tr>
+  <tr><td>TC-AUTH-07</td><td>auth/face-login</td><td>Face matches descriptor</td><td>cosine similarity ≥ 0.6</td><td>200, session</td><td>Med</td></tr>
+  <tr><td>TC-AUTH-08</td><td>auth/face-login</td><td>Different person</td><td>cosine similarity &lt; 0.6</td><td>401</td><td>Med</td></tr>
+  <tr><td>TC-AUTH-09</td><td>auth/logout</td><td>Logout terminates session</td><td>session cookie</td><td>Cookie cleared, /dashboard redirects to /login</td><td>High</td></tr>
+  <tr><td>TC-AUTH-10</td><td>auth/decorators</td><td>Anonymous hits protected route</td><td>no cookie + GET /api/transactions</td><td>302 to /login</td><td>High</td></tr>
+</table>
+
+<h3>19.2 Authorization (RBAC) test cases</h3>
+<table>
+  <tr><th>ID</th><th>Module</th><th>Description</th><th>Input</th><th>Expected</th></tr>
+  <tr><td>TC-RBAC-01</td><td>admin endpoints</td><td>Viewer hits /admin/api/users</td><td>viewer session</td><td>403 forbidden</td></tr>
+  <tr><td>TC-RBAC-02</td><td>admin endpoints</td><td>Admin hits /admin/api/users</td><td>admin session</td><td>200 + paged users JSON</td></tr>
+  <tr><td>TC-RBAC-03</td><td>retrain</td><td>Analyst can retrain model</td><td>analyst session</td><td>202 queued</td></tr>
+  <tr><td>TC-RBAC-04</td><td>retrain</td><td>Viewer cannot retrain</td><td>viewer session</td><td>403</td></tr>
+  <tr><td>TC-RBAC-05</td><td>review txn</td><td>Analyst marks txn reviewed</td><td>analyst + txn id</td><td>review_status updated, audit log written</td></tr>
+</table>
+
+<h3>19.3 Machine Learning test cases</h3>
+<table>
+  <tr><th>ID</th><th>Module</th><th>Description</th><th>Input</th><th>Expected</th></tr>
+  <tr><td>TC-ML-01</td><td>FraudModel.train</td><td>Trains on 10k synthetic rows</td><td>5% fraud rate</td><td>roc_auc ≥ 0.95, model saved to .pkl</td></tr>
+  <tr><td>TC-ML-02</td><td>FraudModel.predict</td><td>Low-risk transaction</td><td>$50, US, groceries, mobile, 14:00, card_present=True</td><td>probability &lt; 0.4, decision=approve</td></tr>
+  <tr><td>TC-ML-03</td><td>FraudModel.predict</td><td>High-risk transaction</td><td>$5000, NG, crypto, web, 03:00, card_present=False</td><td>probability ≥ 0.85, decision=decline</td></tr>
+  <tr><td>TC-ML-04</td><td>FeatureEngineer</td><td>Hour cyclic encoding</td><td>hour=0 vs hour=23</td><td>cosine similarity &gt; 0.95 (close in feature space)</td></tr>
+  <tr><td>TC-ML-05</td><td>FraudModel.save/load</td><td>Round-trip persistence</td><td>train → save → load → predict</td><td>Predictions identical before and after</td></tr>
+  <tr><td>TC-ML-06</td><td>FraudModel.predict</td><td>Missing optional field</td><td>no merchant_category</td><td>handled gracefully, default category used</td></tr>
+  <tr><td>TC-ML-07</td><td>VotingClassifier</td><td>Soft voting math</td><td>RF=0.6, GB=0.7, LR=0.4</td><td>final ≈ 0.4·0.6 + 0.4·0.7 + 0.2·0.4 = 0.6</td></tr>
+  <tr><td>TC-ML-08</td><td>Performance</td><td>Single prediction latency</td><td>1 transaction</td><td>&lt; 30 ms on 2-core CPU</td></tr>
+</table>
+
+<h3>19.4 Rule engine test cases</h3>
+<table>
+  <tr><th>ID</th><th>Description</th><th>Input</th><th>Expected reasons</th><th>Expected score</th></tr>
+  <tr><td>TC-RULE-01</td><td>High amount</td><td>amount=$3000</td><td>["high_amount"]</td><td>≥ 0.30</td></tr>
+  <tr><td>TC-RULE-02</td><td>High-risk country</td><td>country=NG</td><td>["high_risk_country"]</td><td>≥ 0.25</td></tr>
+  <tr><td>TC-RULE-03</td><td>Combined amount + country</td><td>$3000 + NG</td><td>["high_amount","high_risk_country"]</td><td>≥ 0.55</td></tr>
+  <tr><td>TC-RULE-04</td><td>Odd-hour high amount</td><td>$500 at 03:00</td><td>["odd_hour"]</td><td>≥ 0.15</td></tr>
+  <tr><td>TC-RULE-05</td><td>Card-not-present high value</td><td>$1500 online</td><td>["card_not_present_high_value"]</td><td>≥ 0.15</td></tr>
+  <tr><td>TC-RULE-06</td><td>All rules fire</td><td>$5000 + NG + crypto + 03:00 + online</td><td>5 reasons</td><td>1.0 (clipped)</td></tr>
+  <tr><td>TC-RULE-07</td><td>No rule fires</td><td>$10 + US + groceries + 14:00 + card_present</td><td>[]</td><td>0.0</td></tr>
+</table>
+
+<h3>19.5 Database / model layer test cases</h3>
+<table>
+  <tr><th>ID</th><th>Description</th><th>Expected</th></tr>
+  <tr><td>TC-DB-01</td><td>Schema created on first run</td><td>All 6 tables present in fraud_detection.db</td></tr>
+  <tr><td>TC-DB-02</td><td>Default roles seeded</td><td>3 rows in roles (admin, analyst, viewer)</td></tr>
+  <tr><td>TC-DB-03</td><td>Default admin seeded</td><td>1 row in users with role=admin</td></tr>
+  <tr><td>TC-DB-04</td><td>set_password / check_password</td><td>Round-trip true; raw password not in DB</td></tr>
+  <tr><td>TC-DB-05</td><td>Cascade delete user → accounts → cards</td><td>Deleting a user removes their accounts and cards atomically</td></tr>
+  <tr><td>TC-DB-06</td><td>Audit log preserves username after user deleted</td><td>username column not null even after FK detach</td></tr>
+  <tr><td>TC-DB-07</td><td>Email masking for non-admin to_dict</td><td>middle chars replaced with *</td></tr>
+  <tr><td>TC-DB-08</td><td>Card PAN never stored as plaintext</td><td>Only mask + sha-256 hash + last4 in DB</td></tr>
+</table>
+
+<h3>19.6 REST API test cases</h3>
+<table>
+  <tr><th>ID</th><th>Endpoint</th><th>Scenario</th><th>Expected status</th></tr>
+  <tr><td>TC-API-01</td><td>POST /api/transactions</td><td>Valid JSON, logged in</td><td>200, decision in response</td></tr>
+  <tr><td>TC-API-02</td><td>POST /api/transactions</td><td>Missing required field</td><td>400</td></tr>
+  <tr><td>TC-API-03</td><td>GET /api/metrics</td><td>Logged in</td><td>200, KPI JSON</td></tr>
+  <tr><td>TC-API-04</td><td>GET /api/alerts</td><td>Logged in</td><td>200, list of alerts</td></tr>
+  <tr><td>TC-API-05</td><td>GET /api/stream</td><td>Logged in</td><td>200, text/event-stream content type</td></tr>
+  <tr><td>TC-API-06</td><td>POST /banking/api/cards/{id}/freeze</td><td>Owner of card</td><td>200, status=frozen</td></tr>
+  <tr><td>TC-API-07</td><td>POST /banking/api/cards/{id}/freeze</td><td>Different user's card</td><td>403</td></tr>
+  <tr><td>TC-API-08</td><td>GET /admin/api/audit-logs</td><td>Admin</td><td>200</td></tr>
+  <tr><td>TC-API-09</td><td>Rate limit on /auth/login</td><td>20 attempts in 1 min</td><td>429 (when Flask-Limiter enabled)</td></tr>
+</table>
+
+<h3>19.7 Frontend / UI test cases</h3>
+<table>
+  <tr><th>ID</th><th>Page</th><th>Action</th><th>Expected</th></tr>
+  <tr><td>TC-UI-01</td><td>/login</td><td>Submit empty form</td><td>HTML5 required-field tooltip</td></tr>
+  <tr><td>TC-UI-02</td><td>/dashboard</td><td>Initial load</td><td>KPI cards visible, charts render within 1 s</td></tr>
+  <tr><td>TC-UI-03</td><td>/dashboard</td><td>New transaction event</td><td>Row appears at top of feed within 200 ms</td></tr>
+  <tr><td>TC-UI-04</td><td>/banking</td><td>Click "Freeze card"</td><td>Status badge updates without page reload</td></tr>
+  <tr><td>TC-UI-05</td><td>/admin/dashboard</td><td>Search user "alice"</td><td>Filtered list returned</td></tr>
+  <tr><td>TC-UI-06</td><td>Mobile viewport (375×812)</td><td>Open dashboard</td><td>Layout collapses to single-column responsive view</td></tr>
+</table>
+
+<h3>19.8 Edge / negative test cases</h3>
+<table>
+  <tr><th>ID</th><th>Description</th><th>Expected</th></tr>
+  <tr><td>TC-EDGE-01</td><td>Transaction amount = 0</td><td>Accepted, low risk</td></tr>
+  <tr><td>TC-EDGE-02</td><td>Transaction amount &lt; 0</td><td>400 validation error</td></tr>
+  <tr><td>TC-EDGE-03</td><td>Country code unknown (e.g. "ZZ")</td><td>Treated as default low-risk; no crash</td></tr>
+  <tr><td>TC-EDGE-04</td><td>SQL injection in username field</td><td>Hashed/escaped; no SQL effect</td></tr>
+  <tr><td>TC-EDGE-05</td><td>XSS payload in profile.bio</td><td>Stored verbatim, escaped on render</td></tr>
+  <tr><td>TC-EDGE-06</td><td>Model file deleted at runtime</td><td>Detected, retrained automatically on next start</td></tr>
+  <tr><td>TC-EDGE-07</td><td>DB file locked by another process</td><td>Friendly 503 error, no data corruption</td></tr>
+  <tr><td>TC-EDGE-08</td><td>10,000 concurrent transactions</td><td>All processed, p95 latency &lt; 100 ms</td></tr>
+</table>
+
+<h3>19.9 Test summary</h3>
+<table>
+  <tr><th>Category</th><th>Total cases</th><th>Critical</th></tr>
+  <tr><td>Authentication</td><td>10</td><td>5</td></tr>
+  <tr><td>Authorization</td><td>5</td><td>3</td></tr>
+  <tr><td>Machine Learning</td><td>8</td><td>3</td></tr>
+  <tr><td>Rule Engine</td><td>7</td><td>2</td></tr>
+  <tr><td>Database</td><td>8</td><td>4</td></tr>
+  <tr><td>REST API</td><td>9</td><td>5</td></tr>
+  <tr><td>Frontend / UI</td><td>6</td><td>2</td></tr>
+  <tr><td>Edge cases</td><td>8</td><td>3</td></tr>
+  <tr><th>Total</th><th>61</th><th>27</th></tr>
+</table>
+
+<!-- =================== 20. SCREENSHOTS =================== -->
+<h2>20. UI Screenshots — page-by-page mockups</h2>
+<p>The mockups below show the structure of each page so reviewers and stakeholders can visualise the product without running it. They are produced as SVG so they print sharp at any zoom.</p>
+
+<h3>20.1 Login Page (/login)</h3>
+<div class="figure">
+<svg viewBox="0 0 720 460" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <rect width="720" height="460" fill="#0f172a"/>
+  <circle cx="120" cy="100" r="160" fill="#3b82f6" opacity="0.18"/>
+  <circle cx="600" cy="380" r="200" fill="#8b5cf6" opacity="0.15"/>
+  <rect x="200" y="60" width="320" height="340" fill="#1e293b" stroke="#334155" rx="14"/>
+  <circle cx="360" cy="115" r="22" fill="#3b82f6"/>
+  <text x="360" y="120" text-anchor="middle" font-size="16" font-weight="bold" fill="white">S</text>
+  <text x="360" y="160" text-anchor="middle" font-size="18" font-weight="bold" fill="white">Sentinel</text>
+  <text x="360" y="180" text-anchor="middle" font-size="11" fill="#94a3b8">Sign in to continue</text>
+  <rect x="240" y="200" width="240" height="34" fill="#0f172a" stroke="#334155" rx="4"/>
+  <text x="252" y="221" font-size="11" fill="#64748b">Username</text>
+  <rect x="240" y="244" width="240" height="34" fill="#0f172a" stroke="#334155" rx="4"/>
+  <text x="252" y="265" font-size="11" fill="#64748b">Password</text>
+  <rect x="240" y="290" width="240" height="36" fill="#3b82f6" rx="4"/>
+  <text x="360" y="312" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Sign In</text>
+  <text x="360" y="346" text-anchor="middle" font-size="11" fill="#3b82f6">Use Face Login →</text>
+  <text x="360" y="378" text-anchor="middle" font-size="10" fill="#64748b">Don't have an account?  Register</text>
+</svg>
+<div class="figure-title">Figure 20.1 — Login page (username/password + face-login link)</div>
+</div>
+
+<h3>20.2 Main Dashboard (/dashboard)</h3>
+<div class="figure">
+<svg viewBox="0 0 760 480" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <rect width="760" height="480" fill="#0f172a"/>
+  <!-- top bar -->
+  <rect x="0" y="0" width="760" height="50" fill="#1e293b"/>
+  <text x="20" y="32" font-size="14" font-weight="bold" fill="white">SENTINEL</text>
+  <text x="120" y="32" font-size="10" fill="#94a3b8">Real-time fraud detection</text>
+  <text x="540" y="32" font-size="10" fill="#94a3b8">Dashboard · Reports · Banking · Admin</text>
+  <circle cx="730" cy="25" r="12" fill="#3b82f6"/>
+  <text x="730" y="29" text-anchor="middle" font-size="10" fill="white">A</text>
+  <!-- KPI cards -->
+  <rect x="20" y="68" width="170" height="76" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="32" y="88" font-size="9" fill="#64748b">TOTAL TXNS / MIN</text>
+  <text x="32" y="115" font-size="22" font-weight="bold" fill="white">1,247</text>
+  <text x="32" y="132" font-size="9" fill="#10b981">▲ 12 % vs last hour</text>
+  <rect x="200" y="68" width="170" height="76" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="212" y="88" font-size="9" fill="#64748b">FLAGGED %</text>
+  <text x="212" y="115" font-size="22" font-weight="bold" fill="#f59e0b">4.8 %</text>
+  <text x="212" y="132" font-size="9" fill="#94a3b8">60 high · 12 critical</text>
+  <rect x="380" y="68" width="170" height="76" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="392" y="88" font-size="9" fill="#64748b">AVG LATENCY</text>
+  <text x="392" y="115" font-size="22" font-weight="bold" fill="white">28 ms</text>
+  <text x="392" y="132" font-size="9" fill="#10b981">p95 41 ms</text>
+  <rect x="560" y="68" width="180" height="76" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="572" y="88" font-size="9" fill="#64748b">MODEL ROC-AUC</text>
+  <text x="572" y="115" font-size="22" font-weight="bold" fill="#3b82f6">0.971</text>
+  <text x="572" y="132" font-size="9" fill="#94a3b8">last train: 2h ago</text>
+  <!-- chart placeholder -->
+  <rect x="20" y="160" width="460" height="180" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="32" y="180" font-size="11" font-weight="bold" fill="white">Transaction volume — last 24 h</text>
+  <polyline points="40,310 80,290 120,300 160,260 200,250 240,220 280,235 320,200 360,210 400,180 440,200 470,170" fill="none" stroke="#3b82f6" stroke-width="2"/>
+  <polyline points="40,330 80,320 120,322 160,310 200,308 240,300 280,302 320,290 360,295 400,280 440,288 470,275" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3,2"/>
+  <text x="40" y="335" font-size="8" fill="#64748b">Total ▬  Flagged ▬</text>
+  <!-- alerts panel -->
+  <rect x="490" y="160" width="250" height="180" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="502" y="180" font-size="11" font-weight="bold" fill="white">Live Alerts</text>
+  <circle cx="510" cy="205" r="4" fill="#dc2626"/>
+  <text x="522" y="208" font-size="9" fill="white">$5,200 · NG · crypto · CRITICAL</text>
+  <circle cx="510" cy="225" r="4" fill="#f59e0b"/>
+  <text x="522" y="228" font-size="9" fill="white">$1,800 · RU · gambling · HIGH</text>
+  <circle cx="510" cy="245" r="4" fill="#f59e0b"/>
+  <text x="522" y="248" font-size="9" fill="white">$2,400 · CN · wire · HIGH</text>
+  <circle cx="510" cy="265" r="4" fill="#f59e0b"/>
+  <text x="522" y="268" font-size="9" fill="white">$3,100 · NG · crypto · HIGH</text>
+  <!-- transactions table -->
+  <rect x="20" y="356" width="720" height="108" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="32" y="376" font-size="11" font-weight="bold" fill="white">Recent Transactions</text>
+  <line x1="20" y1="386" x2="740" y2="386" stroke="#334155"/>
+  <text x="32" y="404" font-size="9" fill="#94a3b8">tx_a8f3 · $52.40 · US · groceries · LOW · APPROVED</text>
+  <text x="32" y="420" font-size="9" fill="#94a3b8">tx_b1c2 · $1,200 · GB · electronics · MEDIUM · APPROVED</text>
+  <text x="32" y="436" font-size="9" fill="#fbbf24">tx_c9d4 · $3,200 · NG · crypto · HIGH · REVIEW</text>
+  <text x="32" y="452" font-size="9" fill="#fca5a5">tx_e7f8 · $5,200 · NG · crypto · CRITICAL · DECLINED</text>
+</svg>
+<div class="figure-title">Figure 20.2 — Live dashboard with KPIs, chart, alerts panel, transaction stream</div>
+</div>
+
+<h3>20.3 Banking Page (/banking)</h3>
+<div class="figure">
+<svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <rect width="760" height="380" fill="#0f172a"/>
+  <rect x="0" y="0" width="760" height="50" fill="#1e293b"/>
+  <text x="20" y="32" font-size="14" font-weight="bold" fill="white">SENTINEL</text>
+  <text x="600" y="32" font-size="10" fill="#94a3b8">Banking</text>
+  <!-- account cards -->
+  <rect x="20" y="68" width="220" height="120" fill="url(#g1)" rx="10"/>
+  <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
+  <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#581c87"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+  <text x="32" y="92" font-size="9" fill="#dbeafe">CHECKING · USD</text>
+  <text x="32" y="124" font-size="20" font-weight="bold" fill="white">$ 4,250.00</text>
+  <text x="32" y="142" font-size="9" fill="#dbeafe">**** 4242 · Primary</text>
+  <text x="32" y="174" font-size="8" fill="#dbeafe">IBAN · GB29 NWBK 6016 1331 9268 19</text>
+  <rect x="260" y="68" width="220" height="120" fill="url(#g2)" rx="10"/>
+  <text x="272" y="92" font-size="9" fill="#e9d5ff">SAVINGS · USD</text>
+  <text x="272" y="124" font-size="20" font-weight="bold" fill="white">$ 12,800.00</text>
+  <text x="272" y="142" font-size="9" fill="#e9d5ff">**** 9521</text>
+  <text x="272" y="174" font-size="8" fill="#e9d5ff">3.1 % APY</text>
+  <!-- card list -->
+  <rect x="20" y="208" width="720" height="150" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="32" y="228" font-size="11" font-weight="bold" fill="white">Cards (3)</text>
+  <line x1="20" y1="238" x2="740" y2="238" stroke="#334155"/>
+  <text x="32" y="258" font-size="10" fill="white">Visa · **** **** **** 4242 · Travel card</text>
+  <text x="500" y="258" font-size="9" fill="#10b981">Active</text>
+  <rect x="640" y="248" width="80" height="22" fill="#3b82f6" rx="3"/>
+  <text x="680" y="263" text-anchor="middle" font-size="9" fill="white">Freeze</text>
+  <text x="32" y="288" font-size="10" fill="white">Mastercard · **** **** **** 9521 · Daily card</text>
+  <text x="500" y="288" font-size="9" fill="#f59e0b">Frozen</text>
+  <rect x="640" y="278" width="80" height="22" fill="#10b981" rx="3"/>
+  <text x="680" y="293" text-anchor="middle" font-size="9" fill="white">Unfreeze</text>
+  <text x="32" y="318" font-size="10" fill="white">Visa · **** **** **** 8801 · Online only</text>
+  <text x="500" y="318" font-size="9" fill="#10b981">Active</text>
+  <rect x="640" y="308" width="80" height="22" fill="#3b82f6" rx="3"/>
+  <text x="680" y="323" text-anchor="middle" font-size="9" fill="white">Manage</text>
+</svg>
+<div class="figure-title">Figure 20.3 — Banking page with accounts (gradient cards) and card list</div>
+</div>
+
+<h3>20.4 Admin Dashboard (/admin/dashboard)</h3>
+<div class="figure">
+<svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <rect width="760" height="360" fill="#f1f5f9"/>
+  <rect x="0" y="0" width="760" height="50" fill="#0f172a"/>
+  <text x="20" y="32" font-size="14" font-weight="bold" fill="white">SENTINEL · Admin</text>
+  <!-- sidebar -->
+  <rect x="0" y="50" width="160" height="310" fill="#1e293b"/>
+  <text x="20" y="80" font-size="11" fill="#cbd5e1">▸ Users</text>
+  <text x="20" y="105" font-size="11" fill="#cbd5e1">▸ Roles</text>
+  <text x="20" y="130" font-size="11" fill="#cbd5e1">▸ Audit Logs</text>
+  <text x="20" y="155" font-size="11" fill="#cbd5e1">▸ Models</text>
+  <text x="20" y="180" font-size="11" fill="#cbd5e1">▸ Settings</text>
+  <!-- main panel -->
+  <text x="180" y="80" font-size="14" font-weight="bold" fill="#0f172a">Users  (24)</text>
+  <rect x="180" y="92" width="200" height="28" fill="white" stroke="#cbd5e1" rx="3"/>
+  <text x="190" y="110" font-size="10" fill="#94a3b8">🔍 Search username, email…</text>
+  <rect x="640" y="92" width="100" height="28" fill="#3b82f6" rx="3"/>
+  <text x="690" y="110" text-anchor="middle" font-size="10" fill="white">+ Add User</text>
+  <!-- table header -->
+  <rect x="180" y="130" width="560" height="26" fill="#0f172a"/>
+  <text x="194" y="147" font-size="10" font-weight="bold" fill="white">USERNAME</text>
+  <text x="320" y="147" font-size="10" font-weight="bold" fill="white">ROLE</text>
+  <text x="430" y="147" font-size="10" font-weight="bold" fill="white">STATUS</text>
+  <text x="540" y="147" font-size="10" font-weight="bold" fill="white">LAST LOGIN</text>
+  <text x="680" y="147" font-size="10" font-weight="bold" fill="white">ACTIONS</text>
+  <!-- rows -->
+  <rect x="180" y="156" width="560" height="32" fill="white" stroke="#e2e8f0"/>
+  <text x="194" y="176" font-size="10" fill="#0f172a">admin</text>
+  <text x="320" y="176" font-size="10" fill="#1d4ed8">admin</text>
+  <text x="430" y="176" font-size="10" fill="#15803d">● Active</text>
+  <text x="540" y="176" font-size="10" fill="#475569">2 min ago</text>
+  <text x="680" y="176" font-size="10" fill="#3b82f6">Edit</text>
+  <rect x="180" y="188" width="560" height="32" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="194" y="208" font-size="10" fill="#0f172a">alice.j</text>
+  <text x="320" y="208" font-size="10" fill="#7c3aed">analyst</text>
+  <text x="430" y="208" font-size="10" fill="#15803d">● Active</text>
+  <text x="540" y="208" font-size="10" fill="#475569">15 min ago</text>
+  <text x="680" y="208" font-size="10" fill="#3b82f6">Edit</text>
+  <rect x="180" y="220" width="560" height="32" fill="white" stroke="#e2e8f0"/>
+  <text x="194" y="240" font-size="10" fill="#0f172a">bob.m</text>
+  <text x="320" y="240" font-size="10" fill="#475569">viewer</text>
+  <text x="430" y="240" font-size="10" fill="#15803d">● Active</text>
+  <text x="540" y="240" font-size="10" fill="#475569">1 day ago</text>
+  <text x="680" y="240" font-size="10" fill="#3b82f6">Edit</text>
+  <rect x="180" y="252" width="560" height="32" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="194" y="272" font-size="10" fill="#0f172a">carol.t</text>
+  <text x="320" y="272" font-size="10" fill="#7c3aed">analyst</text>
+  <text x="430" y="272" font-size="10" fill="#dc2626">● Locked</text>
+  <text x="540" y="272" font-size="10" fill="#475569">3 days ago</text>
+  <text x="680" y="272" font-size="10" fill="#3b82f6">Unlock</text>
+  <rect x="180" y="284" width="560" height="32" fill="white" stroke="#e2e8f0"/>
+  <text x="194" y="304" font-size="10" fill="#0f172a">dave.l</text>
+  <text x="320" y="304" font-size="10" fill="#475569">viewer</text>
+  <text x="430" y="304" font-size="10" fill="#94a3b8">● Inactive</text>
+  <text x="540" y="304" font-size="10" fill="#475569">never</text>
+  <text x="680" y="304" font-size="10" fill="#3b82f6">Activate</text>
+</svg>
+<div class="figure-title">Figure 20.4 — Admin user management with search, role badges, status indicators</div>
+</div>
+
+<h3>20.5 Profile / Face Enrollment Page (/profile)</h3>
+<div class="figure">
+<svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <rect width="760" height="360" fill="#f1f5f9"/>
+  <rect x="0" y="0" width="760" height="50" fill="#0f172a"/>
+  <text x="20" y="32" font-size="14" font-weight="bold" fill="white">SENTINEL · My Profile</text>
+  <!-- left card: face -->
+  <rect x="20" y="70" width="280" height="270" fill="white" stroke="#cbd5e1" rx="8"/>
+  <text x="160" y="92" text-anchor="middle" font-size="13" font-weight="bold" fill="#0f172a">Face Login</text>
+  <rect x="50" y="108" width="220" height="160" fill="#0f172a" rx="6"/>
+  <circle cx="160" cy="180" r="42" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+  <circle cx="146" cy="170" r="3" fill="#3b82f6"/>
+  <circle cx="174" cy="170" r="3" fill="#3b82f6"/>
+  <path d="M 145 195 Q 160 205 175 195" fill="none" stroke="#3b82f6" stroke-width="2"/>
+  <text x="160" y="248" text-anchor="middle" font-size="9" fill="#94a3b8">Live preview</text>
+  <text x="160" y="288" text-anchor="middle" font-size="10" fill="#15803d">● Face enrolled (98% confidence)</text>
+  <rect x="60" y="300" width="200" height="28" fill="#dc2626" rx="3"/>
+  <text x="160" y="319" text-anchor="middle" font-size="10" fill="white">Re-enroll Face</text>
+  <!-- right card: details -->
+  <rect x="320" y="70" width="420" height="270" fill="white" stroke="#cbd5e1" rx="8"/>
+  <text x="340" y="92" font-size="13" font-weight="bold" fill="#0f172a">Personal Information</text>
+  <text x="340" y="118" font-size="10" fill="#475569">Username</text>
+  <text x="500" y="118" font-size="10" fill="#0f172a">admin</text>
+  <text x="340" y="142" font-size="10" fill="#475569">Email</text>
+  <text x="500" y="142" font-size="10" fill="#0f172a">admin@frauddetection.local</text>
+  <text x="340" y="166" font-size="10" fill="#475569">Full name</text>
+  <text x="500" y="166" font-size="10" fill="#0f172a">Alice Admin</text>
+  <text x="340" y="190" font-size="10" fill="#475569">Role</text>
+  <text x="500" y="190" font-size="10" fill="#1d4ed8">admin</text>
+  <text x="340" y="214" font-size="10" fill="#475569">Country</text>
+  <text x="500" y="214" font-size="10" fill="#0f172a">IN</text>
+  <text x="340" y="238" font-size="10" fill="#475569">2-Factor Auth</text>
+  <text x="500" y="238" font-size="10" fill="#15803d">Enabled</text>
+  <text x="340" y="262" font-size="10" fill="#475569">Last login</text>
+  <text x="500" y="262" font-size="10" fill="#0f172a">2 minutes ago</text>
+  <rect x="340" y="290" width="120" height="28" fill="#3b82f6" rx="3"/>
+  <text x="400" y="309" text-anchor="middle" font-size="10" fill="white">Edit Profile</text>
+  <rect x="470" y="290" width="120" height="28" fill="#f1f5f9" stroke="#cbd5e1" rx="3"/>
+  <text x="530" y="309" text-anchor="middle" font-size="10" fill="#0f172a">Change Password</text>
+</svg>
+<div class="figure-title">Figure 20.5 — Profile page with live face enrollment preview and account details</div>
+</div>
+
+<h3>20.6 Transactions History Page (/transactions)</h3>
+<div class="figure">
+<svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <rect width="760" height="320" fill="white"/>
+  <rect x="0" y="0" width="760" height="50" fill="#0f172a"/>
+  <text x="20" y="32" font-size="14" font-weight="bold" fill="white">My Transactions</text>
+  <!-- filters -->
+  <rect x="20" y="68" width="120" height="28" fill="#f1f5f9" stroke="#cbd5e1" rx="3"/>
+  <text x="32" y="86" font-size="10" fill="#475569">Last 30 days  ▾</text>
+  <rect x="150" y="68" width="100" height="28" fill="#f1f5f9" stroke="#cbd5e1" rx="3"/>
+  <text x="162" y="86" font-size="10" fill="#475569">All risks  ▾</text>
+  <rect x="260" y="68" width="200" height="28" fill="#f1f5f9" stroke="#cbd5e1" rx="3"/>
+  <text x="272" y="86" font-size="10" fill="#94a3b8">🔍 Search merchant, amount</text>
+  <rect x="640" y="68" width="100" height="28" fill="#10b981" rx="3"/>
+  <text x="690" y="86" text-anchor="middle" font-size="10" fill="white">Export CSV</text>
+  <!-- table -->
+  <rect x="20" y="106" width="720" height="26" fill="#0f172a"/>
+  <text x="32" y="123" font-size="10" font-weight="bold" fill="white">DATE</text>
+  <text x="160" y="123" font-size="10" font-weight="bold" fill="white">MERCHANT</text>
+  <text x="320" y="123" font-size="10" font-weight="bold" fill="white">AMOUNT</text>
+  <text x="430" y="123" font-size="10" font-weight="bold" fill="white">CATEGORY</text>
+  <text x="560" y="123" font-size="10" font-weight="bold" fill="white">RISK</text>
+  <text x="650" y="123" font-size="10" font-weight="bold" fill="white">STATUS</text>
+  <rect x="20" y="132" width="720" height="30" fill="white" stroke="#e2e8f0"/>
+  <text x="32" y="151" font-size="10" fill="#0f172a">23 May 14:02</text>
+  <text x="160" y="151" font-size="10" fill="#0f172a">Whole Foods</text>
+  <text x="320" y="151" font-size="10" fill="#0f172a">$ 52.40</text>
+  <text x="430" y="151" font-size="10" fill="#0f172a">groceries</text>
+  <text x="560" y="151" font-size="10" fill="#15803d">low</text>
+  <text x="650" y="151" font-size="10" fill="#15803d">approved</text>
+  <rect x="20" y="162" width="720" height="30" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="32" y="181" font-size="10" fill="#0f172a">23 May 11:48</text>
+  <text x="160" y="181" font-size="10" fill="#0f172a">Apple Store</text>
+  <text x="320" y="181" font-size="10" fill="#0f172a">$ 1,299.00</text>
+  <text x="430" y="181" font-size="10" fill="#0f172a">electronics</text>
+  <text x="560" y="181" font-size="10" fill="#92400e">medium</text>
+  <text x="650" y="181" font-size="10" fill="#15803d">approved</text>
+  <rect x="20" y="192" width="720" height="30" fill="white" stroke="#e2e8f0"/>
+  <text x="32" y="211" font-size="10" fill="#0f172a">22 May 03:14</text>
+  <text x="160" y="211" font-size="10" fill="#0f172a">CryptoX</text>
+  <text x="320" y="211" font-size="10" fill="#0f172a">$ 2,100.00</text>
+  <text x="430" y="211" font-size="10" fill="#0f172a">crypto</text>
+  <text x="560" y="211" font-size="10" fill="#9a3412">high</text>
+  <text x="650" y="211" font-size="10" fill="#92400e">in review</text>
+  <rect x="20" y="222" width="720" height="30" fill="#fef2f2" stroke="#fecaca"/>
+  <text x="32" y="241" font-size="10" fill="#0f172a">21 May 23:55</text>
+  <text x="160" y="241" font-size="10" fill="#0f172a">UnknownMerchant</text>
+  <text x="320" y="241" font-size="10" fill="#0f172a">$ 5,200.00</text>
+  <text x="430" y="241" font-size="10" fill="#0f172a">wire_transfer</text>
+  <text x="560" y="241" font-size="10" fill="#991b1b">critical</text>
+  <text x="650" y="241" font-size="10" fill="#991b1b">declined</text>
+  <rect x="20" y="252" width="720" height="30" fill="white" stroke="#e2e8f0"/>
+  <text x="32" y="271" font-size="10" fill="#0f172a">21 May 19:22</text>
+  <text x="160" y="271" font-size="10" fill="#0f172a">Uber</text>
+  <text x="320" y="271" font-size="10" fill="#0f172a">$ 18.20</text>
+  <text x="430" y="271" font-size="10" fill="#0f172a">transport</text>
+  <text x="560" y="271" font-size="10" fill="#15803d">low</text>
+  <text x="650" y="271" font-size="10" fill="#15803d">approved</text>
+</svg>
+<div class="figure-title">Figure 20.6 — User-facing transactions history with filter, search, export, status colors</div>
+</div>
+
+<h3>20.7 Reports / Analytics Page (/reports)</h3>
+<div class="figure">
+<svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <rect width="760" height="360" fill="#0f172a"/>
+  <rect x="0" y="0" width="760" height="50" fill="#1e293b"/>
+  <text x="20" y="32" font-size="14" font-weight="bold" fill="white">SENTINEL · Reports</text>
+  <!-- chart 1: risk distribution (donut) -->
+  <rect x="20" y="68" width="240" height="270" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="32" y="88" font-size="11" font-weight="bold" fill="white">Risk distribution (today)</text>
+  <circle cx="140" cy="200" r="70" fill="none" stroke="#10b981" stroke-width="22" stroke-dasharray="240 440" transform="rotate(-90 140 200)"/>
+  <circle cx="140" cy="200" r="70" fill="none" stroke="#f59e0b" stroke-width="22" stroke-dasharray="120 440" stroke-dashoffset="-240" transform="rotate(-90 140 200)"/>
+  <circle cx="140" cy="200" r="70" fill="none" stroke="#dc2626" stroke-width="22" stroke-dasharray="60 440" stroke-dashoffset="-360" transform="rotate(-90 140 200)"/>
+  <text x="140" y="200" text-anchor="middle" font-size="20" font-weight="bold" fill="white">12 480</text>
+  <text x="140" y="218" text-anchor="middle" font-size="9" fill="#94a3b8">total</text>
+  <rect x="36" y="290" width="10" height="10" fill="#10b981"/>
+  <text x="50" y="300" font-size="9" fill="white">low (74%)</text>
+  <rect x="120" y="290" width="10" height="10" fill="#f59e0b"/>
+  <text x="135" y="300" font-size="9" fill="white">med/high (21%)</text>
+  <rect x="36" y="312" width="10" height="10" fill="#dc2626"/>
+  <text x="50" y="321" font-size="9" fill="white">critical (5%)</text>
+  <!-- chart 2: top countries (bar) -->
+  <rect x="270" y="68" width="220" height="270" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="282" y="88" font-size="11" font-weight="bold" fill="white">Top countries by fraud %</text>
+  <text x="282" y="118" font-size="10" fill="white">NG</text>
+  <rect x="320" y="108" width="160" height="14" fill="#dc2626" rx="2"/>
+  <text x="486" y="118" font-size="9" fill="white">28%</text>
+  <text x="282" y="142" font-size="10" fill="white">RU</text>
+  <rect x="320" y="132" width="120" height="14" fill="#f59e0b" rx="2"/>
+  <text x="446" y="142" font-size="9" fill="white">22%</text>
+  <text x="282" y="166" font-size="10" fill="white">CN</text>
+  <rect x="320" y="156" width="100" height="14" fill="#f59e0b" rx="2"/>
+  <text x="426" y="166" font-size="9" fill="white">18%</text>
+  <text x="282" y="190" font-size="10" fill="white">BR</text>
+  <rect x="320" y="180" width="60" height="14" fill="#3b82f6" rx="2"/>
+  <text x="386" y="190" font-size="9" fill="white">11%</text>
+  <text x="282" y="214" font-size="10" fill="white">IN</text>
+  <rect x="320" y="204" width="40" height="14" fill="#10b981" rx="2"/>
+  <text x="366" y="214" font-size="9" fill="white">7%</text>
+  <text x="282" y="238" font-size="10" fill="white">US</text>
+  <rect x="320" y="228" width="20" height="14" fill="#10b981" rx="2"/>
+  <text x="346" y="238" font-size="9" fill="white">3.6%</text>
+  <text x="282" y="280" font-size="9" fill="#94a3b8">Period: last 30 days</text>
+  <text x="282" y="298" font-size="9" fill="#94a3b8">Sample: 2.4M transactions</text>
+  <!-- chart 3: line of fraud over time -->
+  <rect x="500" y="68" width="240" height="270" fill="#1e293b" stroke="#334155" rx="6"/>
+  <text x="512" y="88" font-size="11" font-weight="bold" fill="white">Fraud rate trend</text>
+  <line x1="510" y1="280" x2="730" y2="280" stroke="#475569"/>
+  <line x1="510" y1="280" x2="510" y2="120" stroke="#475569"/>
+  <polyline points="510,260 540,250 570,235 600,220 630,210 660,180 690,165 720,150" fill="none" stroke="#3b82f6" stroke-width="2"/>
+  <polyline points="510,260 540,250 570,235 600,220 630,210 660,180 690,165 720,150 720,280 510,280" fill="#3b82f6" opacity="0.18"/>
+  <circle cx="720" cy="150" r="3.5" fill="white"/>
+  <text x="525" y="135" font-size="9" fill="#94a3b8">5%</text>
+  <text x="525" y="280" font-size="9" fill="#94a3b8">0%</text>
+  <text x="510" y="300" font-size="9" fill="#94a3b8">7d ago</text>
+  <text x="700" y="300" font-size="9" fill="#94a3b8">today</text>
+  <text x="512" y="328" font-size="9" fill="#10b981">↑ trending up — investigate?</text>
+</svg>
+<div class="figure-title">Figure 20.7 — Analytics page with donut, bar and area charts (Chart.js)</div>
+</div>
+
+<h3>20.8 Notifications / Alerts Inbox (/notifications)</h3>
+<div class="figure">
+<svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" style="background:white;border:1px solid #e2e8f0;border-radius:8px;">
+  <rect width="760" height="300" fill="white"/>
+  <rect x="0" y="0" width="760" height="50" fill="#0f172a"/>
+  <text x="20" y="32" font-size="14" font-weight="bold" fill="white">Notifications</text>
+  <text x="700" y="32" font-size="10" fill="#94a3b8">12 unread</text>
+  <rect x="20" y="68" width="720" height="50" fill="#fef2f2" stroke="#fecaca" rx="4"/>
+  <circle cx="40" cy="93" r="8" fill="#dc2626"/>
+  <text x="40" y="97" text-anchor="middle" font-size="10" fill="white">!</text>
+  <text x="60" y="88" font-size="11" font-weight="bold" fill="#0f172a">Critical: Transaction declined</text>
+  <text x="60" y="105" font-size="10" fill="#475569">$5,200 wire_transfer to NG flagged at 23:55. Reason: high_amount, high_risk_country.</text>
+  <text x="700" y="105" font-size="9" fill="#94a3b8">2 min ago</text>
+  <rect x="20" y="124" width="720" height="50" fill="#fffbeb" stroke="#fde68a" rx="4"/>
+  <circle cx="40" cy="149" r="8" fill="#f59e0b"/>
+  <text x="40" y="153" text-anchor="middle" font-size="10" fill="white">⚠</text>
+  <text x="60" y="144" font-size="11" font-weight="bold" fill="#0f172a">High-risk transaction in review</text>
+  <text x="60" y="161" font-size="10" fill="#475569">$2,100 to crypto exchange awaiting analyst approval.</text>
+  <text x="700" y="161" font-size="9" fill="#94a3b8">15 min ago</text>
+  <rect x="20" y="180" width="720" height="50" fill="#eff6ff" stroke="#bfdbfe" rx="4"/>
+  <circle cx="40" cy="205" r="8" fill="#3b82f6"/>
+  <text x="40" y="209" text-anchor="middle" font-size="10" fill="white">i</text>
+  <text x="60" y="200" font-size="11" font-weight="bold" fill="#0f172a">Model retrained successfully</text>
+  <text x="60" y="217" font-size="10" fill="#475569">New ROC-AUC = 0.973 (was 0.971). Live since 12:00.</text>
+  <text x="700" y="217" font-size="9" fill="#94a3b8">2 h ago</text>
+  <rect x="20" y="236" width="720" height="50" fill="white" stroke="#e2e8f0" rx="4"/>
+  <circle cx="40" cy="261" r="8" fill="#10b981"/>
+  <text x="40" y="265" text-anchor="middle" font-size="10" fill="white">✓</text>
+  <text x="60" y="256" font-size="11" font-weight="bold" fill="#0f172a">New device login</text>
+  <text x="60" y="273" font-size="10" fill="#475569">Successful login from Bengaluru, IN · Chrome on macOS.</text>
+  <text x="700" y="273" font-size="9" fill="#94a3b8">today 09:14</text>
+</svg>
+<div class="figure-title">Figure 20.8 — Notifications inbox: critical alerts in red, info in blue, success in green</div>
+</div>
+
+<!-- =================== 21. FUTURE =================== -->
+<h2>21. Future Scope &amp; Real-World Use Cases</h2>
 
 <h3>17.1 Where this kind of system is used today</h3>
 <ul>
@@ -1076,8 +1762,8 @@ python main.py</pre>
   <tr><td>Multi-tenancy</td><td>Support many client banks on the same platform with data isolation.</td></tr>
 </table>
 
-<!-- =================== 18. Q&A =================== -->
-<h2>18. Project Q&amp;A — viva / interview style</h2>
+<!-- =================== 22. Q&A =================== -->
+<h2>22. Project Q&amp;A — viva / interview style</h2>
 
 <div class="qa">
   <div class="q">Q1. In one sentence — what does Sentinel do?</div>
@@ -1179,8 +1865,8 @@ python main.py</pre>
   <div class="a">Current ML uses only the current transaction's features — no user history. Adding an LSTM/Transformer that consumes the user's last N transactions (sequence model) would dramatically improve detection of account takeovers.</div>
 </div>
 
-<!-- =================== 19. CONCLUSION =================== -->
-<h2>19. Conclusion</h2>
+<!-- =================== 23. CONCLUSION =================== -->
+<h2>23. Conclusion</h2>
 <p>Sentinel is a complete, production-style fraud-detection platform that brings together <strong>software engineering, data engineering, and machine learning</strong> in a single coherent system. It demonstrates:</p>
 <ul>
   <li>How a modern Python web stack (Flask + SQLAlchemy) supports a multi-tier application.</li>
@@ -1194,7 +1880,7 @@ python main.py</pre>
 <footer>
   Sentinel — Real-Time Fraud Detection System &nbsp;·&nbsp;
   Repository: jumanalnagesh80-pixel/Fraud-Detection-Syst &nbsp;·&nbsp;
-  Detailed Project Report v2.0 &nbsp;·&nbsp; May 2026
+  Detailed Project Report v3.0 &nbsp;·&nbsp; May 2026
 </footer>
 
 </body>
