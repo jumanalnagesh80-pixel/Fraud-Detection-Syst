@@ -512,11 +512,12 @@ def api_forgot_password():
 # ============================================================
 # Uses face-api.js client-side to compute a 128-dim descriptor.
 # We compare the descriptors server-side via Euclidean distance.
-# Default threshold of 0.55 is slightly tighter than face-api.js's 0.6
-# default — more strict to reduce false positives, but the env var
-# FACE_MATCH_THRESHOLD lets you tune it.
+# 0.6 is face-api.js's recommended default and balances false rejections
+# vs. false matches. Override via the FACE_MATCH_THRESHOLD env var if you
+# want it tighter (e.g. 0.5) or looser (e.g. 0.65).
+import math
 import os as _os
-FACE_MATCH_THRESHOLD = float(_os.environ.get('FACE_MATCH_THRESHOLD', '0.55'))
+FACE_MATCH_THRESHOLD = float(_os.environ.get('FACE_MATCH_THRESHOLD', '0.6'))
 
 
 def _euclidean_distance(a, b) -> float:
@@ -531,13 +532,13 @@ def _euclidean_distance(a, b) -> float:
 
 
 def _validate_descriptor(desc) -> bool:
-    """Sanity-check a face descriptor: list of 128 numbers."""
+    """Sanity-check a face descriptor: list of 128 finite numbers."""
     if not isinstance(desc, list):
         return False
     if len(desc) != 128:
         return False
     try:
-        return all(isinstance(float(x), float) for x in desc)
+        return all(math.isfinite(float(x)) for x in desc)
     except (TypeError, ValueError):
         return False
 
@@ -609,12 +610,21 @@ def api_face_login():
     Request body:
     {
         "username": "admin",
-        "descriptor": [0.123, -0.456, ...]
+        "descriptor": [0.123, -0.456, ...],
+        "final":      false   // optional, default false
     }
+
+    The face login UI captures multiple frames in a row and POSTs each one
+    as a candidate. To avoid locking accounts after a few imperfect frames
+    in a single legitimate session, we only count a *failed login attempt*
+    (toward the 5-strike, 15-minute lockout) when the client signals
+    ``final: true`` on its very last retry. Non-final misses return 401
+    but do NOT touch ``failed_login_attempts``.
     """
     data = request.get_json() or {}
     username = (data.get('username') or '').strip()
     descriptor = data.get('descriptor')
+    is_final = bool(data.get('final', False))
 
     if not username:
         return jsonify({'error': 'Username required'}), 400
@@ -641,22 +651,32 @@ def api_face_login():
     distance = _euclidean_distance(user.face_descriptor, descriptor)
 
     if distance > FACE_MATCH_THRESHOLD:
-        user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
-        if user.failed_login_attempts >= 5:
-            user.locked_until = datetime.utcnow() + timedelta(minutes=15)
-        db.session.commit()
+        # Soft miss — only record a real failure (and possibly lock the
+        # account) when the client tells us this was the final retry of
+        # the session. Otherwise let them keep trying.
+        if is_final:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            if user.failed_login_attempts >= 5:
+                user.locked_until = datetime.utcnow() + timedelta(minutes=15)
+            db.session.commit()
 
-        log_audit(
-            user_id=user.id,
-            username=user.username,
-            action='face_login_failed',
-            resource='auth',
-            status='failure',
-            details={'distance': round(distance, 4), 'threshold': FACE_MATCH_THRESHOLD},
-        )
+            log_audit(
+                user_id=user.id,
+                username=user.username,
+                action='face_login_failed',
+                resource='auth',
+                status='failure',
+                details={
+                    'distance': round(distance, 4),
+                    'threshold': FACE_MATCH_THRESHOLD,
+                    'attempts': user.failed_login_attempts,
+                },
+            )
+
         return jsonify({
             'error': 'Face did not match',
             'distance': round(distance, 4),
+            'miss': True,
         }), 401
 
     # Match — log the user in

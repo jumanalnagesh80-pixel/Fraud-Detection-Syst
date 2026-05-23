@@ -484,6 +484,13 @@
     let faceVideoStream = null;
     let faceLoopHandle = null;
     let lastFaceDescriptor = null;
+    // Multi-frame averaging: collect a rolling buffer of recent face
+    // descriptors and average them at enrollment time. A single frame is
+    // very sensitive to lighting/angle/expression — averaging produces a
+    // much more stable embedding and dramatically reduces false rejects
+    // at login time.
+    const ENROLL_SAMPLES = 5;
+    let descriptorSamples = [];
 
     async function loadFaceModels() {
       if (faceModelsLoaded) return;
@@ -577,6 +584,7 @@
         faceLoopHandle = null;
       }
       lastFaceDescriptor = null;
+      descriptorSamples = [];
       document.getElementById('btn-face-capture').disabled = true;
       document.getElementById('face-enroll-wrap').style.display = 'none';
       document.getElementById('face-actions').style.display = 'flex';
@@ -608,11 +616,29 @@
           ctx.strokeStyle = '#10b981';
           ctx.lineWidth = 3;
           ctx.strokeRect(box.x, box.y, box.width, box.height);
-          lastFaceDescriptor = Array.from(detection.descriptor);
-          captureBtn.disabled = false;
-          hint.textContent = '✓ Face detected — click "Capture & Enroll"';
+
+          // Push this frame's descriptor onto the rolling sample buffer.
+          // We keep the most recent ENROLL_SAMPLES frames and only enable
+          // the Capture button once we have a full buffer of stable frames.
+          const desc = Array.from(detection.descriptor);
+          descriptorSamples.push(desc);
+          if (descriptorSamples.length > ENROLL_SAMPLES) {
+            descriptorSamples.shift();
+          }
+          lastFaceDescriptor = desc;
+
+          if (descriptorSamples.length >= ENROLL_SAMPLES) {
+            captureBtn.disabled = false;
+            hint.textContent = `✓ Face stable (${ENROLL_SAMPLES} samples) — click "Capture & Enroll"`;
+          } else {
+            captureBtn.disabled = true;
+            hint.textContent = `Hold still — capturing samples (${descriptorSamples.length}/${ENROLL_SAMPLES})`;
+          }
         } else {
+          // Lost the face — drop accumulated samples so we don't average
+          // across people / large gaps in time.
           lastFaceDescriptor = null;
+          descriptorSamples = [];
           captureBtn.disabled = true;
           hint.textContent = 'Position your face clearly in the frame';
         }
@@ -624,15 +650,25 @@
     }
 
     async function enrollFace() {
-      if (!lastFaceDescriptor) {
-        toast('No face detected — try again', 'error');
+      if (descriptorSamples.length < ENROLL_SAMPLES) {
+        toast(`Need ${ENROLL_SAMPLES} stable face samples first — hold still`, 'error');
         return;
       }
+      // Element-wise mean of the buffered descriptors. The averaged
+      // 128-d vector is far more representative of the user than any
+      // single frame, so it greatly reduces false rejects at login.
+      const dim = descriptorSamples[0].length;
+      const avg = new Array(dim).fill(0);
+      for (const d of descriptorSamples) {
+        for (let i = 0; i < dim; i++) avg[i] += d[i];
+      }
+      for (let i = 0; i < dim; i++) avg[i] /= descriptorSamples.length;
+
       try {
         const r = await fetch('/auth/api/face/enroll', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ descriptor: lastFaceDescriptor }),
+          body: JSON.stringify({ descriptor: avg }),
         });
         const data = await r.json();
         if (r.ok) {

@@ -476,11 +476,13 @@
           fl_busy = true;
           let r, data;
           try {
+            const isFinal = fl_attempt >= MAX_ATTEMPTS;
             r = await fetch('/auth/api/face/login', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 username,
                 descriptor: Array.from(detection.descriptor),
+                final: isFinal,
               }),
             });
             data = await r.json();
