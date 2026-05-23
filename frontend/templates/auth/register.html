@@ -3,115 +3,317 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Register · Sentinel Fraud Detection</title>
+  <title>Create Account · Sentinel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/auth.css" />
+  <link rel="stylesheet" href="/profile.css" />
+  <style>
+    /* ===== Wizard layout ===== */
+    .wizard-card { max-width: 520px; padding: 32px 30px; }
+    .wizard-steps {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 6px; margin: 6px 0 22px;
+    }
+    .wstep {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--text-mute, #94a3b8); position: relative;
+    }
+    .wstep .dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(148,163,184,0.18); color: #cbd5e1;
+      display: grid; place-items: center; font-weight: 700;
+      border: 1.5px solid rgba(148,163,184,0.35);
+      transition: all 0.25s ease;
+    }
+    .wstep.done .dot {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      border-color: transparent; color: white;
+    }
+    .wstep.active .dot {
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      border-color: transparent; color: white;
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.18);
+    }
+    .wstep.active .label,
+    .wstep.done .label { color: #e2e8f0; }
+    .wstep + .wstep::before {
+      content: ''; position: absolute; height: 2px; top: 13px; left: -50%; width: 100%;
+      background: rgba(148,163,184,0.18);
+      z-index: -1;
+    }
+    .wstep.done + .wstep::before,
+    .wstep.active + .wstep::before { background: linear-gradient(90deg,#10b981,#6366f1); }
+
+    .wpanel { display: none; animation: fadeIn 0.25s ease; }
+    .wpanel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .wizard-actions {
+      display: flex; gap: 10px; justify-content: space-between;
+      margin-top: 22px;
+    }
+
+    /* ===== Password strength meter ===== */
+    .pw-strength {
+      display: flex; gap: 4px; margin-top: 8px;
+    }
+    .pw-strength .bar {
+      flex: 1; height: 4px; border-radius: 2px;
+      background: rgba(148,163,184,0.18); transition: background 0.2s ease;
+    }
+    .pw-strength.s1 .bar:nth-child(-n+1) { background: #ef4444; }
+    .pw-strength.s2 .bar:nth-child(-n+2) { background: #f59e0b; }
+    .pw-strength.s3 .bar:nth-child(-n+3) { background: #eab308; }
+    .pw-strength.s4 .bar:nth-child(-n+4) { background: #10b981; }
+    .pw-label { font-size: 11px; margin-top: 4px; color: var(--text-mute,#94a3b8); }
+
+    /* ===== ID proof drop area ===== */
+    .id-drop {
+      position: relative;
+      border: 2px dashed rgba(99,102,241,0.4);
+      border-radius: 14px;
+      padding: 22px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(99,102,241,0.05);
+      transition: all 0.2s ease;
+    }
+    .id-drop:hover { border-color: #6366f1; background: rgba(99,102,241,0.1); }
+    .id-drop.has-file { border-style: solid; border-color: #10b981; background: rgba(16,185,129,0.05); }
+    .id-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .id-drop-icon { width: 38px; height: 38px; margin: 0 auto 8px; color: #6366f1; }
+    .id-drop.has-file .id-drop-icon { color: #10b981; }
+    .id-preview { max-height: 180px; max-width: 100%; border-radius: 10px; margin: 8px 0; }
+    .id-meta { font-size: 12px; color: var(--text-mute, #94a3b8); }
+
+    /* ===== Face stage (re-uses login styling) ===== */
+    .face-stage-r {
+      position: relative;
+      width: 100%; aspect-ratio: 1/1; max-width: 320px;
+      margin: 4px auto 0; border-radius: 18px; overflow: hidden;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid rgba(99,102,241,0.35);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .face-stage-r video, .face-stage-r canvas {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; transform: scaleX(-1);
+    }
+    .face-stage-r canvas { pointer-events: none; }
+    .face-stage-r.matched { border-color: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,0.25); }
+    .face-progress-r {
+      width: 100%; height: 4px; background: rgba(148,163,184,0.18);
+      border-radius: 4px; overflow: hidden; margin-top: 14px;
+    }
+    .face-progress-r > div {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #6366f1, #06b6d4);
+      transition: width 0.25s ease;
+    }
+    .step-hint {
+      font-size: 13px; color: var(--text-mute,#94a3b8);
+      text-align: center; margin: 12px 0 0;
+    }
+
+    /* ===== Done screen ===== */
+    .done-screen { text-align: center; padding: 12px 0 8px; }
+    .done-icon {
+      width: 80px; height: 80px; margin: 0 auto 14px;
+      border-radius: 50%; display: grid; place-items: center;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      box-shadow: 0 0 0 8px rgba(16,185,129,0.18);
+      animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .done-icon svg { color: white; }
+    @keyframes pop {
+      0% { transform: scale(0); }
+      80% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+  </style>
 </head>
 <body>
   <div class="auth-container">
-    <div class="auth-card">
+    <div class="auth-card wizard-card">
+
+      <!-- Logo & brand header -->
       <div class="auth-brand">
         <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="M9 12l2 2 4-4" />
+          <svg viewBox="0 0 64 64" fill="none">
+            <defs>
+              <linearGradient id="lgr" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#6366f1"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+            </defs>
+            <path d="M32 4 L56 12 V32 C56 46 44 56 32 60 C20 56 8 46 8 32 V12 Z"
+                  fill="url(#lgr)" />
+            <circle cx="32" cy="26" r="9" fill="none" stroke="white" stroke-width="2.4"/>
+            <circle cx="29" cy="24" r="1.3" fill="white"/>
+            <circle cx="35" cy="24" r="1.3" fill="white"/>
+            <path d="M28 30 Q32 33 36 30" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 44 L29 50 L42 38" fill="none" stroke="white"
+                  stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div>
           <h1 class="brand-title">Sentinel</h1>
-          <p class="brand-subtitle">Fraud Detection System</p>
+          <p class="brand-subtitle">Secure KYC Onboarding</p>
         </div>
       </div>
 
       <div class="auth-header">
         <h2>Create your account</h2>
-        <p>Get started with fraud detection analytics</p>
+        <p>Quick, one-time verification — face + ID proof</p>
+      </div>
+
+      <!-- Step indicator -->
+      <div class="wizard-steps" id="wizard-steps">
+        <div class="wstep active" data-step="1"><div class="dot">1</div><div class="label">Account</div></div>
+        <div class="wstep"        data-step="2"><div class="dot">2</div><div class="label">ID Proof</div></div>
+        <div class="wstep"        data-step="3"><div class="dot">3</div><div class="label">Face</div></div>
+        <div class="wstep"        data-step="4"><div class="dot">4</div><div class="label">Done</div></div>
       </div>
 
       <div id="alert-container"></div>
 
-      <form id="register-form" class="auth-form">
+      <!-- ============ STEP 1: ACCOUNT ============ -->
+      <div class="wpanel active" id="wpanel-1">
         <div class="form-group">
           <label for="full_name">Full Name</label>
           <div class="input-wrapper">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <input type="text" id="full_name" name="full_name" placeholder="John Doe" />
+            <input type="text" id="full_name" placeholder="John Doe" />
           </div>
         </div>
-
         <div class="form-group">
           <label for="username">Username</label>
           <div class="input-wrapper">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="8.5" cy="7" r="4" />
-              <polyline points="17 11 19 13 23 9" />
-            </svg>
-            <input type="text" id="username" name="username" required autocomplete="username" placeholder="johndoe" />
+            <input type="text" id="username" required autocomplete="username" placeholder="johndoe" />
           </div>
-          <small class="form-hint">3-50 characters, letters and numbers only</small>
+          <small class="form-hint">3–50 characters</small>
         </div>
-
         <div class="form-group">
-          <label for="email">Email Address</label>
+          <label for="email">Email</label>
           <div class="input-wrapper">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-            <input type="email" id="email" name="email" required autocomplete="email" placeholder="john@company.com" />
+            <input type="email" id="email" required autocomplete="email" placeholder="you@example.com" />
           </div>
         </div>
-
         <div class="form-group">
           <label for="password">Password</label>
           <div class="input-wrapper">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            <input type="password" id="password" name="password" required autocomplete="new-password" placeholder="Create a strong password" />
+            <input type="password" id="password" required autocomplete="new-password" placeholder="Create a strong password" />
             <button type="button" class="password-toggle" id="toggle-password">
               <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
               </svg>
             </button>
           </div>
-          <small class="form-hint">At least 8 characters</small>
+          <div class="pw-strength" id="pw-bars">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          </div>
+          <div class="pw-label" id="pw-label">Use 8+ characters with upper, lower & a digit</div>
         </div>
-
         <div class="form-group">
           <label for="confirm_password">Confirm Password</label>
           <div class="input-wrapper">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password" placeholder="Confirm your password" />
+            <input type="password" id="confirm_password" required autocomplete="new-password" placeholder="Re-type your password" />
           </div>
         </div>
-
         <div class="form-row">
           <label class="checkbox-label">
-            <input type="checkbox" name="terms" id="terms" required />
+            <input type="checkbox" id="terms" required />
             <span>I agree to the <a href="#" class="link-primary">Terms of Service</a></span>
           </label>
         </div>
+        <div class="wizard-actions">
+          <span></span>
+          <button type="button" class="btn btn-primary" id="btn-next-1">Continue →</button>
+        </div>
+      </div>
 
-        <button type="submit" class="btn btn-primary" id="submit-btn">
-          <span class="btn-text">Create Account</span>
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
-        </button>
-      </form>
+      <!-- ============ STEP 2: ID PROOF ============ -->
+      <div class="wpanel" id="wpanel-2">
+        <div class="form-group">
+          <label for="id_type">ID Document Type</label>
+          <div class="input-wrapper">
+            <select id="id_type" required>
+              <option value="">Select an ID document…</option>
+              <option value="aadhaar">Aadhaar Card</option>
+              <option value="passport">Passport</option>
+              <option value="pan">PAN Card</option>
+              <option value="driving_license">Driving Licence</option>
+              <option value="national_id">National ID</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="id_number">ID Number</label>
+          <div class="input-wrapper">
+            <input type="text" id="id_number" required placeholder="As printed on your document" />
+          </div>
+          <small class="form-hint">Stored hashed — only the last 4 digits are visible to admins.</small>
+        </div>
+        <div class="form-group">
+          <label>Upload ID Document Photo</label>
+          <label class="id-drop" id="id-drop">
+            <input type="file" id="id_file" accept="image/jpeg,image/png,image/webp" />
+            <svg class="id-drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <div id="id-drop-text"><strong>Click to upload</strong> · JPG, PNG, WEBP · max 5 MB</div>
+            <img id="id-preview" class="id-preview" alt="" style="display:none;" />
+            <div id="id-meta" class="id-meta"></div>
+          </label>
+        </div>
+        <div class="wizard-actions">
+          <button type="button" class="btn btn-ghost" data-back="1">← Back</button>
+          <button type="button" class="btn btn-primary" id="btn-next-2">Continue →</button>
+        </div>
+      </div>
+
+      <!-- ============ STEP 3: FACE CAPTURE ============ -->
+      <div class="wpanel" id="wpanel-3">
+        <p class="step-hint" style="margin-top:0;">
+          Face login lets you sign in without a password next time.
+          Detection runs entirely in your browser.
+        </p>
+
+        <div class="face-stage-r" id="face-stage-r">
+          <video id="reg-video" autoplay muted playsinline></video>
+          <canvas id="reg-canvas"></canvas>
+        </div>
+
+        <div class="face-progress-r"><div id="reg-progress"></div></div>
+        <p class="step-hint" id="reg-hint">Click <strong>Start Camera</strong> to begin.</p>
+
+        <div class="wizard-actions">
+          <button type="button" class="btn btn-ghost" data-back="2">← Back</button>
+          <div style="display:flex; gap:10px;">
+            <button type="button" class="btn btn-ghost" id="btn-skip-face">Skip for now</button>
+            <button type="button" class="btn btn-primary" id="btn-start-face">Start Camera</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ STEP 4: DONE ============ -->
+      <div class="wpanel" id="wpanel-4">
+        <div class="done-screen">
+          <div class="done-icon">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h3 style="margin: 6px 0 4px;">You're all set!</h3>
+          <p style="color:var(--text-mute,#94a3b8); margin: 0 0 18px;">
+            Account created and KYC verified. Taking you to your dashboard…
+          </p>
+          <div class="spinner-small" style="display:inline-block;"></div>
+        </div>
+      </div>
 
       <div class="auth-footer">
         <p>Already have an account? <a href="/auth/login" class="link-primary">Sign in</a></p>
@@ -125,84 +327,274 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
   <script>
-    // Password toggle
-    document.getElementById('toggle-password').addEventListener('click', function() {
-      const input = document.getElementById('password');
-      input.type = input.type === 'password' ? 'text' : 'password';
+    /* =========================================================
+       WIZARD NAVIGATION
+       ========================================================= */
+    const totalSteps = 4;
+    let currentStep = 1;
+    function gotoStep(n) {
+      currentStep = n;
+      document.querySelectorAll('.wpanel').forEach(p => p.classList.remove('active'));
+      document.getElementById('wpanel-' + n).classList.add('active');
+      document.querySelectorAll('.wstep').forEach(s => {
+        const i = +s.dataset.step;
+        s.classList.toggle('active', i === n);
+        s.classList.toggle('done', i < n);
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    document.querySelectorAll('[data-back]').forEach(b =>
+      b.addEventListener('click', () => gotoStep(+b.dataset.back))
+    );
+
+    /* =========================================================
+       ALERTS
+       ========================================================= */
+    function alertMsg(msg, type = 'error') {
+      const c = document.getElementById('alert-container');
+      const el = document.createElement('div');
+      el.className = `alert alert-${type === 'error' ? 'error' : 'success'}`;
+      el.innerHTML = `<svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        ${type === 'success'
+          ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+          : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'}
+      </svg><span>${msg}</span>`;
+      c.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('show'));
+      setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 4000);
+    }
+
+    /* =========================================================
+       STEP 1 — Account
+       ========================================================= */
+    document.getElementById('toggle-password').addEventListener('click', () => {
+      const i = document.getElementById('password');
+      i.type = i.type === 'password' ? 'text' : 'password';
     });
 
-    // Form submission
-    document.getElementById('register-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirm_password').value;
-      
-      if (password !== confirmPassword) {
-        showAlert('Passwords do not match', 'error');
+    function passwordScore(pw) {
+      let s = 0;
+      if (pw.length >= 8) s++;
+      if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++;
+      if (/\d/.test(pw)) s++;
+      if (/[^A-Za-z0-9]/.test(pw) && pw.length >= 10) s++;
+      return s;
+    }
+    document.getElementById('password').addEventListener('input', e => {
+      const s = passwordScore(e.target.value);
+      const bars = document.getElementById('pw-bars');
+      bars.classList.remove('s1','s2','s3','s4');
+      if (s) bars.classList.add('s' + s);
+      const labels = ['Use 8+ characters with upper, lower & a digit',
+                      'Weak — add upper/lower case', 'Fair', 'Good', 'Strong'];
+      document.getElementById('pw-label').textContent = labels[s];
+    });
+
+    document.getElementById('btn-next-1').addEventListener('click', () => {
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const pw = document.getElementById('password').value;
+      const pw2 = document.getElementById('confirm_password').value;
+      const terms = document.getElementById('terms').checked;
+      if (username.length < 3) return alertMsg('Username must be at least 3 characters');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alertMsg('Please enter a valid email');
+      if (passwordScore(pw) < 3) return alertMsg('Password too weak — needs 8+ chars with upper, lower & digit');
+      if (pw !== pw2) return alertMsg('Passwords do not match');
+      if (!terms) return alertMsg('Please agree to the Terms of Service');
+      gotoStep(2);
+    });
+
+    /* =========================================================
+       STEP 2 — ID Proof
+       ========================================================= */
+    let idFile = null;
+    const idInput = document.getElementById('id_file');
+    const idDrop = document.getElementById('id-drop');
+    const idPreview = document.getElementById('id-preview');
+    const idMeta = document.getElementById('id-meta');
+    const idDropText = document.getElementById('id-drop-text');
+
+    idInput.addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      if (f.size > 5 * 1024 * 1024) {
+        alertMsg('Image must be 5 MB or smaller');
+        idInput.value = '';
         return;
       }
-      
-      const btn = document.getElementById('submit-btn');
-      const btnText = btn.querySelector('.btn-text');
-      const originalText = btnText.textContent;
-      
-      btn.disabled = true;
-      btnText.textContent = 'Creating account...';
-      
-      const formData = {
-        username: document.getElementById('username').value,
-        email: document.getElementById('email').value,
-        password: password,
-        full_name: document.getElementById('full_name').value || undefined
-      };
-      
-      try {
-        const response = await fetch('/auth/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          showAlert('Account created successfully! Redirecting to login...', 'success');
-          setTimeout(() => {
-            window.location.href = '/auth/login';
-          }, 1500);
-        } else {
-          showAlert(data.error || 'Registration failed', 'error');
-          btn.disabled = false;
-          btnText.textContent = originalText;
-        }
-      } catch (error) {
-        showAlert('Network error. Please try again.', 'error');
-        btn.disabled = false;
-        btnText.textContent = originalText;
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
+        alertMsg('Only JPG, PNG or WEBP images are allowed');
+        idInput.value = '';
+        return;
       }
+      idFile = f;
+      idDrop.classList.add('has-file');
+      idDropText.style.display = 'none';
+      idPreview.src = URL.createObjectURL(f);
+      idPreview.style.display = 'block';
+      idMeta.textContent = `${f.name} · ${(f.size / 1024).toFixed(0)} KB`;
     });
 
-    function showAlert(message, type) {
-      const container = document.getElementById('alert-container');
-      const alert = document.createElement('div');
-      alert.className = `alert alert-${type}`;
-      alert.innerHTML = `
-        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          ${type === 'success' 
-            ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
-            : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+    document.getElementById('btn-next-2').addEventListener('click', () => {
+      const idType = document.getElementById('id_type').value;
+      const idNumber = document.getElementById('id_number').value.trim();
+      if (!idType) return alertMsg('Please select an ID type');
+      if (idNumber.length < 4) return alertMsg('Please enter your ID number');
+      if (!idFile) return alertMsg('Please upload your ID document photo');
+      gotoStep(3);
+    });
+
+    /* =========================================================
+       STEP 3 — Face capture (5-frame averaged) — optional
+       ========================================================= */
+    const FACE_MODEL_SOURCES = [
+      'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model',
+      'https://cdn.jsdelivr.net/gh/vladmandic/face-api@master/model',
+      'https://justadudewhohacks.github.io/face-api.js/weights',
+    ];
+    const FACE_SAMPLES_NEEDED = 5;
+    let faceModelsLoaded = false;
+    let regStream = null, regLoop = null;
+    let regSamples = [];
+    let regAveraged = null;
+
+    const stage = document.getElementById('face-stage-r');
+    const regHint = document.getElementById('reg-hint');
+    const regProgress = document.getElementById('reg-progress');
+
+    async function loadModels() {
+      if (faceModelsLoaded) return true;
+      if (typeof faceapi === 'undefined') { alertMsg('Face library not loaded'); return false; }
+      for (const url of FACE_MODEL_SOURCES) {
+        try {
+          regHint.innerHTML = `Loading model from <strong>${new URL(url).hostname}</strong>…`;
+          await Promise.race([
+            Promise.all([
+              faceapi.nets.tinyFaceDetector.loadFromUri(url),
+              faceapi.nets.faceLandmark68Net.loadFromUri(url),
+              faceapi.nets.faceRecognitionNet.loadFromUri(url),
+            ]),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 18000)),
+          ]);
+          faceModelsLoaded = true;
+          return true;
+        } catch (err) { /* try next */ }
+      }
+      return false;
+    }
+
+    document.getElementById('btn-start-face').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-start-face');
+      btn.disabled = true; btn.textContent = 'Loading…';
+      const ok = await loadModels();
+      if (!ok) { alertMsg('Could not load face model. Check internet.'); btn.disabled = false; btn.textContent = 'Retry'; return; }
+      try {
+        regStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 480, height: 480, facingMode: 'user' }
+        });
+      } catch (err) {
+        alertMsg(err.name === 'NotAllowedError' ? 'Camera permission denied' : 'Camera unavailable');
+        btn.disabled = false; btn.textContent = 'Retry';
+        return;
+      }
+      const video = document.getElementById('reg-video');
+      video.srcObject = regStream;
+      video.onloadedmetadata = () => { btn.style.display = 'none'; detectLoop(); };
+    });
+
+    document.getElementById('btn-skip-face').addEventListener('click', () => {
+      stopFaceCam();
+      regAveraged = null;
+      submitRegistration();
+    });
+
+    function stopFaceCam() {
+      if (regStream) { regStream.getTracks().forEach(t => t.stop()); regStream = null; }
+      if (regLoop) { clearTimeout(regLoop); regLoop = null; }
+    }
+
+    async function detectLoop() {
+      const video = document.getElementById('reg-video');
+      const canvas = document.getElementById('reg-canvas');
+      if (!video || video.paused) return;
+
+      const size = { width: video.videoWidth || 480, height: video.videoHeight || 480 };
+      faceapi.matchDimensions(canvas, size);
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      try {
+        const det = await faceapi
+          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.45 }))
+          .withFaceLandmarks().withFaceDescriptor();
+        if (det) {
+          const r = faceapi.resizeResults(det, size);
+          ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3;
+          ctx.strokeRect(r.detection.box.x, r.detection.box.y, r.detection.box.width, r.detection.box.height);
+          regSamples.push(Array.from(det.descriptor));
+          if (regSamples.length > FACE_SAMPLES_NEEDED) regSamples.shift();
+          const pct = Math.min(100, regSamples.length / FACE_SAMPLES_NEEDED * 100);
+          regProgress.style.width = pct + '%';
+          if (regSamples.length >= FACE_SAMPLES_NEEDED) {
+            regHint.innerHTML = '<strong>✓ Face captured</strong> — finishing up…';
+            stage.classList.add('matched');
+            regAveraged = averageDescriptors(regSamples);
+            stopFaceCam();
+            setTimeout(submitRegistration, 600);
+            return;
           }
-        </svg>
-        <span>${message}</span>
-      `;
-      container.appendChild(alert);
-      setTimeout(() => alert.classList.add('show'), 10);
-      setTimeout(() => {
-        alert.classList.remove('show');
-        setTimeout(() => alert.remove(), 300);
-      }, 4000);
+          regHint.textContent = `Hold still — capturing (${regSamples.length}/${FACE_SAMPLES_NEEDED})`;
+        } else {
+          regSamples = [];
+          regProgress.style.width = '0%';
+          regHint.textContent = 'Position your face inside the frame';
+        }
+      } catch (err) { /* transient */ }
+      regLoop = setTimeout(detectLoop, 250);
+    }
+
+    function averageDescriptors(samples) {
+      const dim = samples[0].length;
+      const out = new Array(dim).fill(0);
+      for (const s of samples) for (let i = 0; i < dim; i++) out[i] += s[i];
+      for (let i = 0; i < dim; i++) out[i] /= samples.length;
+      return out;
+    }
+
+    /* =========================================================
+       FINAL — submit everything to /auth/api/register-kyc
+       ========================================================= */
+    async function submitRegistration() {
+      gotoStep(4);
+      const fd = new FormData();
+      fd.append('username', document.getElementById('username').value.trim());
+      fd.append('email', document.getElementById('email').value.trim());
+      fd.append('password', document.getElementById('password').value);
+      fd.append('full_name', document.getElementById('full_name').value.trim());
+      fd.append('id_type', document.getElementById('id_type').value);
+      fd.append('id_number', document.getElementById('id_number').value.trim());
+      fd.append('id_file', idFile);
+      if (regAveraged) fd.append('face_descriptor', JSON.stringify(regAveraged));
+
+      try {
+        const r = await fetch('/auth/api/register-kyc', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (!r.ok) {
+          alertMsg(data.error || 'Registration failed');
+          gotoStep(2);
+          return;
+        }
+        // Persist token and remember username for next visit
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('sentinel_remembered_username', data.user.username);
+        setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
+      } catch (err) {
+        alertMsg('Network error during registration');
+        gotoStep(2);
+      }
     }
   </script>
 </body>
